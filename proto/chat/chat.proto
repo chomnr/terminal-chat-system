@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+
+package chatnexus.chat;
+
+service ChatService {
+    rpc SendMessage (ChatRequest) returns (ChatResponse);
+    rpc RecieveMessage (Empty) returns (ChatRequest);
+}
+
+message Empty {} // Empty request
+
+message ChatRequest { // client request
+    string username = 1;
+    string message = 2;
+}
+
+message ChatResponse { // client response
+    bool Status = 1;
+}
