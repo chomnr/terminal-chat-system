@@ -1,0 +1,6 @@
+syntax = "proto3";
+package OAuth2;
+
+service OAuth2 {
+    
+}
