@@ -1,9 +1,5 @@
 use std::io::{stdin, stdout, Write};
 
-use chatnexus_chat::{
-    chat_service_client::{self, ChatServiceClient},
-    ChatRequest,
-};
 
 pub mod chatnexus_chat {
     tonic::include_proto!("chatnexus.chat");
@@ -11,14 +7,15 @@ pub mod chatnexus_chat {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /* 
     let mut client = ChatServiceClient::connect("http://[::1]:50051")
         .await
         .unwrap();
-    let mut isLoggedIn = false;
+    let mut is_logged_in = false;
     let mut saved_logged = String::default();
 
     while true {
-        let username = if isLoggedIn {
+        let username = if is_logged_in {
             saved_logged.clone()
         } else {
             print!("Login as: ");
@@ -27,7 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let mut input = String::new();
             stdin().read_line(&mut input).unwrap();
 
-            isLoggedIn = true;
+            is_logged_in = true;
             saved_logged = input.trim().to_string();
             saved_logged.clone()
         };
@@ -45,6 +42,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("RESPONSE={:?}", response);
     }
     Ok(())
+    */
+    todo!()
 }
 /*
 print!("Enter your name: ");

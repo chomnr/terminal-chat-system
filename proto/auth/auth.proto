@@ -1,0 +1,26 @@
+syntax = "proto3";
+package chatnexus.auth;
+
+enum AuthType {
+    None = 0;
+    Standard = 1;
+    Apple = 2;
+    Discord = 3;
+    Facebok = 4;
+    Google = 5;
+}
+
+service Auth {
+    rpc SetAuthType(AuthRequest) returns (AuthResponse);
+}
+
+message Empty {} // Empty request
+
+message AuthRequest {
+    AuthType type = 1;
+    string message = 2;
+}
+
+message AuthResponse {
+    string message = 1;
+}
