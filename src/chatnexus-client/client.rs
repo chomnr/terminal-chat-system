@@ -28,9 +28,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
    // let response = chat_client.send_message(request).await?;
    let request = tonic::Request::new(Empty::default());
-   
+    
    let response = auth_client.send_auth_message(request).await?;
-   println!("{:?}", response.get_ref().message);
+   println!("Authentication Method: {:?}", response.get_ref().message.replace("\"", ""));
 
    //let response = auth_client.send_auth_message(request)
 
