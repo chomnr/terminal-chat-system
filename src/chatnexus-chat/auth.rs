@@ -8,6 +8,7 @@ use crate::chat::{chatnexus_chat::{AuthType, auth_server::{self, Auth, AuthServe
 
 #[derive(Clone)]
 pub struct AuthService {
+    server_name: String,
     auth_type: AuthType,
     service: Option<AuthServer<Self>>
 }
@@ -15,17 +16,24 @@ pub struct AuthService {
 #[tonic::async_trait]
 impl Auth for AuthService {
     async fn send_auth_message(&self, _request: Request<Empty>) -> Result<Response<BarenResponse>, Status> {
+        println!("[SYSTEM] Sending out an authentication request.");
+        if !self.auth_type.eq(&AuthType::None) {
+            let response = BarenResponse {
+                message: "".to_string()
+            };
+        }
         let response = BarenResponse {
-            message: "sadsd".to_string()
+            message: format!("{:?}", self.auth_type)
         };
         Ok(Response::new(response))
     }
 }
 
 impl AuthService {
-    pub fn new(auth_type: AuthType ) -> Self {
+    pub fn new(server_name: &str, auth_type: AuthType) -> Self {
        // let service = AuthServer::new(auth.clone());
         Self {
+            server_name: server_name.to_string(),
             auth_type,
             service: None,
         }

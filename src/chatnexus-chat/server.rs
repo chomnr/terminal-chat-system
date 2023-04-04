@@ -10,13 +10,13 @@ mod chat;
 mod auth;
 
 /// Information about the gRPC.
-const SERVER_NAME: &str = "NexusChat";
+const SERVER_NAME: &str = "Test Chat Server Name";
 const ADDRESS: &str = "[::1]:50051";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chat = ChatService::new();
-    let mut auth = AuthService::new(AuthType::None);
+    let mut auth = AuthService::new(SERVER_NAME, AuthType::Discord);
     auth.reset_service(); // reset the service.
     
     let addr: SocketAddr = ADDRESS.parse().unwrap();
@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(r" | |    | '_ \ / _` | __| . ` |/ _ \ \/ / | | / __|");
     println!(r" | |____| | | | (_| | |_| |\  |  __/>  <| |_| \__ \");
     println!(r"  \_____|_| |_|\__,_|\__|_| \_|\___/_/\_\\__,_|___/");
+    println!("");
 
     Server::builder()
         .add_service(chat.service())
