@@ -3,7 +3,7 @@ use std::net::{IpAddr, SocketAddr};
 use chatnexus_chat::{chat_server::ChatServer, ChatResponse, ChatRequest, Empty};
 use tonic::{transport::Server, Request, Response, Status};
 
-use self::chatnexus_chat::chat_server::{Chat, self};
+use self::chatnexus_chat::{chat_server::{Chat, self}, BarenResponse};
 
 
 pub mod chatnexus_chat {
@@ -22,6 +22,7 @@ impl Chat for ChatNexusChat {
         };
         Ok(Response::new(chat_response))
     }
+    
     async fn recieve_message(&self, request: Request<Empty>) -> Result<Response<ChatRequest>, Status>  {
         println!("test");
         todo!()
@@ -42,7 +43,6 @@ impl ChatService {
             service,
         }
     }
-
     pub fn service(self) -> ChatServer<ChatNexusChat> {
         self.service
     }

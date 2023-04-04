@@ -4,10 +4,30 @@ option java_multiple_files = true;
 
 package chatnexus.chat;
 
+enum AuthType {
+    None = 0;
+    Standard = 1;
+    Discord = 2;
+}
+
 service Chat {
+    // Message Sending
     rpc SendMessage (ChatRequest) returns (ChatResponse);
     rpc RecieveMessage (Empty) returns (ChatRequest);
+    // Authentication
+    //rpc SendAuthMessage(Empty) returns (BarenResponse);
 }
+
+service Auth {
+    rpc SendAuthMessage(Empty) returns (BarenResponse);
+}
+
+// service Auth {
+    //rpc Authenticate
+    //rpc CurrentAuth
+    //rpc SendAuthUrl
+    //
+//}
 
 message Empty {} // Empty request
 
@@ -18,4 +38,9 @@ message ChatRequest { // client request
 
 message ChatResponse { // client response
     bool Status = 1;
+}
+
+// Authentication
+message BarenResponse {
+    string message = 1;
 }
