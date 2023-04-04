@@ -8,7 +8,6 @@ use crate::chat::{chatnexus_chat::{AuthType, auth_server::{self, Auth, AuthServe
 
 #[derive(Clone)]
 pub struct AuthService {
-    server_name: String,
     auth_type: AuthType,
     service: Option<AuthServer<Self>>
 }
@@ -30,15 +29,15 @@ impl Auth for AuthService {
 }
 
 impl AuthService {
-    pub fn new(server_name: &str, auth_type: AuthType) -> Self {
+    pub fn new(auth_type: AuthType) -> Self {
        // let service = AuthServer::new(auth.clone());
         Self {
-            server_name: server_name.to_string(),
             auth_type,
             service: None,
         }
     }
 
+    // hacky way until i find a better solution...
     pub fn reset_service(&mut self) {
         self.service = Some(AuthServer::new(self.clone()));
     }
@@ -47,19 +46,3 @@ impl AuthService {
         self.service.unwrap()
     }
 }
-
-/*
-
-pub fn new() -> Self {
-        let chat = ChatNexusChat::default();
-        let service = chat_server::ChatServer::new(chat.clone());
-        Self {
-            chat,
-            service,
-        }
-    }
-
-    pub fn service(self) -> ChatServer<ChatNexusChat> {
-        self.service
-    }
- */
