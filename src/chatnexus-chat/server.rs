@@ -17,7 +17,7 @@ const ADDRESS: &str = "[::1]:50051";
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let chat = ChatService::new();
-    let mut auth = AuthService::new(AuthType::Discord);
+    let mut auth = AuthService::new(AuthType::OAuth2);
     auth.reset_service(); // reset the service.
     
     let addr: SocketAddr = ADDRESS.parse().unwrap();

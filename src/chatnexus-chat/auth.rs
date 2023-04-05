@@ -23,6 +23,9 @@ impl Auth for AuthService {
     async fn notify_auth_service(&self, request: Request<AuthRequest>) -> Result<Response<AuthResponse>, Status> {
         let data = request.get_ref();
         let mut auth_session = PREAUTH_SESSION.lock().await;
+
+       // &self.build_response(AuthStatus::Ok, AuthStage::Stage1, session_id)
+        
         /*
         if data.session_id.is_none() {
             helper::system_print("Sent out an authentication request.");
@@ -69,5 +72,14 @@ impl AuthService {
     
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()
+    }
+
+    fn build_response(self, status: AuthStatus, stage: AuthStage, session_id: &str) -> AuthResponse  {
+        AuthResponse { 
+            r#type: self.auth_type.into(), 
+            status: status.into(), 
+            stage: Some(stage.into()), 
+            session_id: session_id.into()
+        }
     }
 }

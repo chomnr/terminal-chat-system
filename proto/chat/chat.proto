@@ -7,7 +7,7 @@ package chatnexus.chat;
 enum AuthType {
     None = 0;
     Standard = 1;
-    Discord = 2;
+    OAuth2 = 2;
 }
 
 enum AuthStatus {
