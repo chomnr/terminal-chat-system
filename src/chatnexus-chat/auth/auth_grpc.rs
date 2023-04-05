@@ -16,11 +16,10 @@ impl Auth for AuthService {
         let mut sessions = PREAUTH_SESSION.lock().unwrap();
         // Check if the session ID extracted from the request is valid.
         if sessions.contains_key(data.session_id()) {
-            helper::system_print(&format!("{:?} is going on to Stage 2 Authentication ", data.session_id()).to_string());
-            // Obtaining the session ID
+            helper::system_print("works");
             let session_id = data.session_id();
-            // If the session ID is valid, continue with the authentication process.
-            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage1, session_id);
+            sessions.insert(session_id.to_string(), AuthStage::Stage2);
+            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id);
             // todo (do rest..)
             return Ok(Response::new(response));
         } else {

@@ -1,6 +1,7 @@
 use std::io::{self, Write, stdout, stdin};
 
 use chatnexus_chat::{chat_client::ChatClient, AuthStatus, AuthStage};
+use oauth2::http::{request, Request};
 
 use crate::chatnexus_chat::{ChatRequest, auth_client::AuthClient, Empty, AuthRequest, AuthType};
 
@@ -10,6 +11,11 @@ pub mod chatnexus_chat {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // User Information.
+    let mut session_id: Option<String> = None;
+    let mut auth_stage: Option<AuthStage> = None;
+    let mut auth_status: Option<AuthStatus> = None;
+
     let address = "http://[::1]:50051";
 
     let mut chat_client = ChatClient::connect(address)
@@ -19,24 +25,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .unwrap();
 
-    let request = tonic::Request::new(ChatRequest {
-        username: "Harry".to_string(),
-        message: "Testing this".to_string()
-    });
+    //let request = tonic::Request::new(AuthRequest {
+        //session_id: None
+    //});
+    
+    while (true) {
+        //let response = auth_client.notify_auth_service(todo!()).await?;
+        //session_id = Some(response.get_ref().session_id.clone());
+        //auth_stage = Some(response.get_ref().stage());
 
-    let request = tonic::Request::new(AuthRequest {
-        session_id: None
-    });
+        
+    }
 
-    let response = auth_client.notify_auth_service(request).await?;
+    //let response = auth_client.notify_auth_service(request).await?;
 
-    let method: AuthType = AuthType::from_i32(response.get_ref().r#type).unwrap();
-    println!("Authentication Method: {:?}\n", method);
+    //let session_id = &response.get_ref().session_id;
+    //let auth_type = AuthType::from_i32(response.get_ref().r#type).unwrap();
+    //let auth_stage = AuthStage::from_i32(response.get_ref().stage.unwrap()).unwrap();
+
+    //let method: AuthType = AuthType::from_i32(response.get_ref().r#type).unwrap();
+    //println!("Authentication Method: {:?}\n", method);
     
     //println!("Response: {:?}", response);
-    stdout().flush().unwrap(); // flush the output to the console
-                let mut answer = String::new();
-                stdin().read_line(&mut answer).unwrap();
+    //stdout().flush().unwrap(); // flush the output to the console
+    //let mut answer = String::new();
+    //stdin().read_line(&mut answer).unwrap();
     Ok(())
 }
 
