@@ -5,7 +5,6 @@ use tonic::{transport::Server, Request, Response, Status};
 
 use self::chatnexus_chat::{chat_server::{Chat, self}, BarenResponse};
 
-
 pub mod chatnexus_chat {
     tonic::include_proto!("chatnexus.chat");
 }

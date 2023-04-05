@@ -16,11 +16,6 @@ pub struct AuthService {
 impl Auth for AuthService {
     async fn send_auth_message(&self, _request: Request<Empty>) -> Result<Response<BarenResponse>, Status> {
         println!("[SYSTEM] Sending out an authentication request.");
-        if !self.auth_type.eq(&AuthType::None) {
-            let response = BarenResponse {
-                message: "".to_string()
-            };
-        }
         let response = BarenResponse {
             message: format!("{:?}", self.auth_type)
         };
@@ -30,7 +25,6 @@ impl Auth for AuthService {
 
 impl AuthService {
     pub fn new(auth_type: AuthType) -> Self {
-       // let service = AuthServer::new(auth.clone());
         Self {
             auth_type,
             service: None,

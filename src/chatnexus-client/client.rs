@@ -32,6 +32,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
    let response = auth_client.send_auth_message(request).await?;
    println!("Authentication Method: {:?}", response.get_ref().message.replace("\"", ""));
 
+   // note: when a user responds yes to start authentication (they send a request that they're ready)
+   // the server generates an auth_session_id back to them and that will be used to identify them.
+   // A URL WILL BE SENT OUR AS WELL AND THE AUTHENTICATION CODE THAT IS DIRECTLY LINKED TO THE CLIENT...
+   // after 2 minutes the session will be deleted if the user does not authorize it....
+
    //let response = auth_client.send_auth_message(request)
 
     //println!("{:?}", response);
