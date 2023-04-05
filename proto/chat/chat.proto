@@ -10,6 +10,17 @@ enum AuthType {
     Discord = 2;
 }
 
+enum AuthStatus {
+    OK = 0;
+    PENDING = 1;
+    DENIED = 2;
+}
+
+enum AuthStage { 
+    STAGE_1 = 0; // Waiting for approval from the user...
+    STAGE_2 = 1; // Create session_id and token for the user
+}
+
 service Chat {
     // Message Sending
     rpc SendMessage (ChatRequest) returns (ChatResponse);
@@ -19,7 +30,7 @@ service Chat {
 }
 
 service Auth {
-    rpc SendAuthMessage(Empty) returns (BarenResponse);
+    rpc NotifyAuthService(Empty) returns (BarenResponse);
 }
 
 // service Auth {
@@ -40,7 +51,22 @@ message ChatResponse { // client response
     bool Status = 1;
 }
 
-// Authentication
 message BarenResponse {
     string message = 1;
+}
+
+// Authentication
+
+
+// message AuthRequest {
+   // optional string ip = 1;
+// }
+
+message AuthStatusResponse {
+    AuthStatus status = 1;
+
+}
+
+message AuthGenerationResponse {
+    string session_id = 1;
 }

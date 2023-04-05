@@ -8,6 +8,7 @@ use chat::chatnexus_chat::AuthType;
 
 mod chat;
 mod auth;
+mod helper;
 
 /// Information about the gRPC.
 const SERVER_NAME: &str = "Test Chat Server Name";
