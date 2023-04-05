@@ -30,7 +30,7 @@ service Chat {
 }
 
 service Auth {
-    rpc NotifyAuthService(Empty) returns (BarenResponse);
+    rpc NotifyAuthService(AuthRequest) returns (AuthResponse);
 }
 
 // service Auth {
@@ -56,15 +56,15 @@ message BarenResponse {
 }
 
 // Authentication
+message AuthRequest {
+    optional string session_id = 1;
+}
 
-
-// message AuthRequest {
-   // optional string ip = 1;
-// }
-
-message AuthStatusResponse {
-    AuthStatus status = 1;
-
+message AuthResponse {
+    AuthType type = 1;
+    AuthStatus status = 2;
+    optional AuthStage stage = 3;
+    string session_id = 4;
 }
 
 message AuthGenerationResponse {
