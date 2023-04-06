@@ -1,6 +1,7 @@
 use std::io::{self, Write, stdout, stdin};
 
 use chatnexus_chat::{chat_client::ChatClient, AuthStatus, AuthStage};
+use dialoguer::{Confirm, theme::{SimpleTheme, self, ColorfulTheme}};
 use oauth2::http::{request, Request};
 
 use crate::chatnexus_chat::{ChatRequest, auth_client::AuthClient, Empty, AuthRequest, AuthType};
@@ -12,7 +13,6 @@ pub mod chatnexus_chat {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // User Information.
-    let mut session_id: Option<String> = None;
     let mut auth_stage: Option<AuthStage> = None;
     let mut auth_status: Option<AuthStatus> = None;
 
@@ -25,17 +25,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await
         .unwrap();
 
-    //let request = tonic::Request::new(AuthRequest {
-        //session_id: None
-    //});
+    let mut request = tonic::Request::new(AuthRequest {
+        session_id: None
+    });
+
+    //request.get_mut().session_id = Some("()".to_string());
+
+/*
+    if Confirm::with_theme(&ColorfulTheme::default())
+        .with_prompt("Would you like to proceed?").interact().unwrap() {
+            println!("Looks like you want to continue");
+        } else {
+            println!("nevermind then :(");
+        }
+    */
     
-    while (true) {
+    //swhile (true) {
         //let response = auth_client.notify_auth_service(todo!()).await?;
         //session_id = Some(response.get_ref().session_id.clone());
-        //auth_stage = Some(response.get_ref().stage());
-
-        
-    }
+        //auth_stage = Some(response.get_ref().stage());\
+    //}
 
     //let response = auth_client.notify_auth_service(request).await?;
 

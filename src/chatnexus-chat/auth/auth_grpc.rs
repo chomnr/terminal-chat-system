@@ -19,8 +19,8 @@ impl Auth for AuthService {
             helper::system_print("works");
             let session_id = data.session_id();
             sessions.insert(session_id.to_string(), AuthStage::Stage2);
-            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id);
-            // todo (do rest..)
+            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id, None, None);
+            // todo (do rest..) catch all stages...
             return Ok(Response::new(response));
         } else {
             // Notifying the server we recieved an Authentication request.
@@ -28,7 +28,7 @@ impl Auth for AuthService {
             // If the session ID is not valid, generate a valid session ID.
             let session_id = uuid::Uuid::new_v4().simple().to_string();
             // Building the gRPC response.
-            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage1, &session_id);
+            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage1, &session_id, None, None);
             // Insert the newly generated session ID into PREAUTH_SESSIONS 
             // with the initial authentication stage.
             sessions.insert(session_id, AuthStage::Stage1);

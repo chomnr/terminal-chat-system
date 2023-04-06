@@ -71,13 +71,17 @@ impl AuthService {
     fn build_response(&self, 
         status: AuthStatus, 
         stage: AuthStage, 
-        session_id: &str
+        session_id: &str,
+        url: Option<String>,
+        code: Option<String>
     ) -> AuthResponse  {
         AuthResponse { 
             r#type: self.auth_type.into(), 
             status: status.into(), 
             stage: Some(stage.into()), 
-            session_id: session_id.into()
+            session_id: session_id.into(),
+            url: url,
+            code: code,
         }
     }
     /// Builds an [AuthRequest] for the client. Shorthand

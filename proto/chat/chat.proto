@@ -65,6 +65,8 @@ message AuthResponse {
     AuthStatus status = 2;
     optional AuthStage stage = 3;
     string session_id = 4;
+    optional string url = 5;
+    optional string code = 6;
 }
 
 message AuthGenerationResponse {
