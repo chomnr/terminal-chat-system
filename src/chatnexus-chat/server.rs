@@ -1,5 +1,6 @@
 use std::net::{IpAddr, SocketAddr};
 
+use redis::AsyncCommands;
 use tonic::transport::Channel;
 use tonic::{transport::Server, Request, Response, Status};
 use crate::auth::AuthService;
@@ -16,6 +17,12 @@ const ADDRESS: &str = "[::1]:50051";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // .env
+    dotenv::dotenv().ok();
+    // Databases
+    let redis = redis::Client::open("").unwrap();
+    let mut redis_conn = redis.get_async_connection().await.unwrap();
+    // Services
     let chat = ChatService::new();
     let auth = AuthService::new(AuthType::OAuth2);
         

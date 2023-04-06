@@ -84,18 +84,6 @@ impl AuthService {
             code: code,
         }
     }
-    /// Builds an [AuthRequest] for the client. Shorthand
-    /// 
-    /// # Arguments
-    /// 
-    /// * `session_id` - The session_id of the client.
-    /// 
-    /// ```
-    pub fn build_request(session_id: &str) -> AuthRequest {
-        AuthRequest { 
-            session_id: Some(session_id.into())
-        }
-    }
     /// Returns instance of [AuthServer].
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()

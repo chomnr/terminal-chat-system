@@ -16,12 +16,23 @@ impl Auth for AuthService {
         let mut sessions = PREAUTH_SESSION.lock().unwrap();
         // Check if the session ID extracted from the request is valid.
         if sessions.contains_key(data.session_id()) {
-            helper::system_print("works");
             let session_id = data.session_id();
-            sessions.insert(session_id.to_string(), AuthStage::Stage2);
-            let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id, None, None);
+            let auth_stage: AuthStage = *sessions.get(session_id).unwrap();
+            //let session_id = data.session_id();
+           // sessions.insert(session_id.to_string(), AuthStage::Stage2);
+            //let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id, None, None);
+            //wself.catch_stage(sessions.get(k), target_stage, ());
+            // Stage 1
+            self.catch_stage(auth_stage, AuthStage::Stage1, || {
+                // Immediately move to Stage 2 this is just an authorization request.
+            });
+
+            self.catch_stage(auth_stage, AuthStage::Stage2, || {
+                // Immediately move to Stage 2 this is just an authorization request.
+            });
             // todo (do rest..) catch all stages...
-            return Ok(Response::new(response));
+            todo!()
+            //return Ok(Response::new(response));
         } else {
             // Notifying the server we recieved an Authentication request.
             helper::system_print("Building a new Authentication request.");
