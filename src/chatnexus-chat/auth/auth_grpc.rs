@@ -27,27 +27,30 @@ impl Auth for AuthService {
             );
             self.catch_stage(auth_stage, AuthStage::Stage1, || {
                 response.stage = Some(AuthStage::Stage2.into());
-                println!("moving to stage two");
+                response.status  = AuthStatus::Ok.into();
+                helper::system_print(&format!("Authorizing '{}' for Stage 2.", session_id).to_string())
             });
 
             self.catch_stage(auth_stage, AuthStage::Stage2, || {
                 // generate info they need..
                 response.stage = Some(AuthStage::Stage3.into());
-                println!("moving to stage three");
+                response.status  = AuthStatus::Ok.into();
+                helper::system_print(&format!("Authorizing '{}' for Stage 3.", session_id).to_string())
             });
 
             self.catch_stage(auth_stage, AuthStage::Stage3, || {
                 response.stage = Some(AuthStage::Stage3.into());
-                println!("WOAH FINAL STAGE!!!");
+                response.status  = AuthStatus::Ok.into();
+                helper::system_print(&format!("'{}' has been fully authenticated.", session_id).to_string())
                 // Wait for them to finish logging in. continous requests should be sent until the user has logged in
             });
             sessions.insert(session_id.to_string(), AuthStage::from_i32(response.stage.unwrap()).unwrap());
             return Ok(Response::new(response))
         } else {
-            // Notifying the server we recieved an Authentication request.
-            helper::system_print("Building a new Authentication request.");
             // If the session ID is not valid, generate a valid session ID.
             let session_id = uuid::Uuid::new_v4().simple().to_string();
+            // Notifying the server we recieved an Authentication request.
+            helper::system_print(&format!("Starting an authentication for '{}'.", session_id).to_string());
             // Building the gRPC response.
             let response = self.build_response(AuthStatus::Ok, AuthStage::Stage1, &session_id, None, None);
             // Insert the newly generated session ID into PREAUTH_SESSIONS 
@@ -56,26 +59,5 @@ impl Auth for AuthService {
             // Sending out the gRPC response.
             return Ok(Response::new(response));
         }
-        todo!()
     }
 }
-
-        //let session_id = data.session_id();
-           // sessions.insert(session_id.to_string(), AuthStage::Stage2);
-            //let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id, None, None);
-            //wself.catch_stage(sessions.get(k), target_stage, ());
-
-  //self.catch_stage(current_stage, target_stage, func)
-        /*
-        &self.stage_change(request, Stage::1
-            ({
-                /// boom do 
-            })
-        );
-
-        &self.stage_change(request, Stage::2
-            ({
-                /// boom do 
-            })
-        );
-        */
