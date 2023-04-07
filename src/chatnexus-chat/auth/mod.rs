@@ -51,10 +51,11 @@ impl AuthService {
     /// * `func` - The fn() that will contain the methods.
     /// 
     /// ```
-    fn catch_stage(&self, 
+    fn catch_stage<T>(&self, 
         current_stage: AuthStage, 
         target_stage: AuthStage, 
-        func: fn()) {
+        func: T
+    ) where T: FnOnce() -> (){
         if current_stage.eq(&target_stage) {
             func()
         }

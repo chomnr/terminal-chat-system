@@ -1,5 +1,6 @@
 use std::net::{IpAddr, SocketAddr};
 
+use dotenv::dotenv;
 use redis::AsyncCommands;
 use tonic::transport::Channel;
 use tonic::{transport::Server, Request, Response, Status};
@@ -20,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // .env
     dotenv::dotenv().ok();
     // Databases
-    let redis = redis::Client::open("").unwrap();
+    let redis = redis::Client::open(dotenv::var("REDIS_HOST").unwrap()).unwrap();
     let mut redis_conn = redis.get_async_connection().await.unwrap();
     // Services
     let chat = ChatService::new();

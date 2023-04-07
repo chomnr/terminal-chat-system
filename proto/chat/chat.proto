@@ -18,19 +18,40 @@ enum AuthStatus {
 
 enum AuthStage { 
     STAGE_1 = 0; // Waiting for approval from the user...
-    STAGE_2 = 1; // Create session_id and token for the user
+    STAGE_2 = 1; // Create session_id and token for the user & url.
+    STAGE_3 = 2; // Waiting to finish sign in page... through oauth2
 }
 
+service Auth {
+    rpc NotifyAuthService(AuthRequest) returns (AuthResponse);
+}
+
+message AuthRequest {
+    optional string session_id = 1;
+}
+
+message AuthResponse {
+    AuthType type = 1;
+    AuthStatus status = 2;
+    optional AuthStage stage = 3;
+    string session_id = 4;
+    optional string url = 5;
+    optional string code = 6;
+}
+
+message AuthGenerationResponse {
+    string session_id = 1;
+}
+
+// end of Auth
+
+// Start of chat..
 service Chat {
     // Message Sending
     rpc SendMessage (ChatRequest) returns (ChatResponse);
     rpc RecieveMessage (Empty) returns (ChatRequest);
     // Authentication
     //rpc SendAuthMessage(Empty) returns (BarenResponse);
-}
-
-service Auth {
-    rpc NotifyAuthService(AuthRequest) returns (AuthResponse);
 }
 
 // service Auth {
@@ -53,22 +74,4 @@ message ChatResponse { // client response
 
 message BarenResponse {
     string message = 1;
-}
-
-// Authentication
-message AuthRequest {
-    optional string session_id = 1;
-}
-
-message AuthResponse {
-    AuthType type = 1;
-    AuthStatus status = 2;
-    optional AuthStage stage = 3;
-    string session_id = 4;
-    optional string url = 5;
-    optional string code = 6;
-}
-
-message AuthGenerationResponse {
-    string session_id = 1;
 }

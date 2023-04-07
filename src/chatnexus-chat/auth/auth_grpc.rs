@@ -18,21 +18,31 @@ impl Auth for AuthService {
         if sessions.contains_key(data.session_id()) {
             let session_id = data.session_id();
             let auth_stage: AuthStage = *sessions.get(session_id).unwrap();
-            //let session_id = data.session_id();
-           // sessions.insert(session_id.to_string(), AuthStage::Stage2);
-            //let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id, None, None);
-            //wself.catch_stage(sessions.get(k), target_stage, ());
-            // Stage 1
+            let mut response = self.build_response(
+                AuthStatus::Denied, 
+                AuthStage::Stage1, 
+                session_id, 
+                None, 
+                None
+            );
             self.catch_stage(auth_stage, AuthStage::Stage1, || {
-                // Immediately move to Stage 2 this is just an authorization request.
+                response.stage = Some(AuthStage::Stage2.into());
+                println!("moving to stage two");
             });
 
             self.catch_stage(auth_stage, AuthStage::Stage2, || {
-                // Immediately move to Stage 2 this is just an authorization request.
+                // generate info they need..
+                response.stage = Some(AuthStage::Stage3.into());
+                println!("moving to stage three");
             });
-            // todo (do rest..) catch all stages...
-            todo!()
-            //return Ok(Response::new(response));
+
+            self.catch_stage(auth_stage, AuthStage::Stage3, || {
+                response.stage = Some(AuthStage::Stage3.into());
+                println!("WOAH FINAL STAGE!!!");
+                // Wait for them to finish logging in. continous requests should be sent until the user has logged in
+            });
+            sessions.insert(session_id.to_string(), AuthStage::from_i32(response.stage.unwrap()).unwrap());
+            return Ok(Response::new(response))
         } else {
             // Notifying the server we recieved an Authentication request.
             helper::system_print("Building a new Authentication request.");
@@ -49,6 +59,11 @@ impl Auth for AuthService {
         todo!()
     }
 }
+
+        //let session_id = data.session_id();
+           // sessions.insert(session_id.to_string(), AuthStage::Stage2);
+            //let response = self.build_response(AuthStatus::Ok, AuthStage::Stage2, session_id, None, None);
+            //wself.catch_stage(sessions.get(k), target_stage, ());
 
   //self.catch_stage(current_stage, target_stage, func)
         /*
