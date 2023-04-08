@@ -3,7 +3,7 @@ use std::io::{self, stdin, stdout, Write};
 use chatnexus_chat::{chat_client::ChatClient, AuthStage, AuthStatus};
 use dialoguer::{
     theme::{self, ColorfulTheme, SimpleTheme},
-    Confirm,
+    Confirm, console::Term,
 };
 use mongodb::change_stream::session;
 use oauth2::{
@@ -19,17 +19,45 @@ pub mod chatnexus_chat {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-
     // Address of the server we would like to connect to.
     let address = "http://[::1]:50051";
     // Connecting to AuthService
     let mut auth_client = AuthClient::connect(address).await.unwrap();
-    // Information
+    // Client's Session ID
     let mut session_id = String::default();
     loop {
-    
+        // Mutable Request/Response
+        let mut request = AuthRequest {session_id: Some(session_id.to_string())};
+        let mut response = auth_client.notify_auth2_service(request).await?;
+        let mut result = response.get_ref();
+
+        // Result References
+        let a_type = AuthType::from_i32(result.r#type).unwrap();
+        let stage = AuthStage::from_i32(result.stage.unwrap()).unwrap();
+        let status = AuthStatus::from_i32(result.status).unwrap();
+
+        println!("Server Authorization Method: {:?}\n", a_type);
+        //println!("Session ID: {:?}\n", session_id);
+
+        if stage == AuthStage::Stage1 && status == AuthStatus::Ok && session_id.is_empty() {
+            if Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt("Do you want to proceed?")
+                .interact()
+                .unwrap()
+            {
+                session_id = result.session_id.to_string();
+            }
+        }
     }
     /*
+
+      if Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Do you want to proceed?")
+            .interact()
+            .unwrap()
+        {
+            
+        }
     if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Do you want to proceed?")
             .interact()
