@@ -22,10 +22,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
     // Databases
     let redis = redis::Client::open(dotenv::var("REDIS_HOST").unwrap()).unwrap();
-    let mut redis_conn = redis.get_async_connection().await.unwrap();
+    //let mut redis_conn = redis.get_async_connection().await.unwrap();
     // Services
     let chat = ChatService::new();
-    let auth = AuthService::new(AuthType::OAuth2);
+    let auth = AuthService::new(AuthType::OAuth2, redis);
         
     let addr: SocketAddr = ADDRESS.parse().unwrap();
     println!("    _____ _           _   _   _                     ");

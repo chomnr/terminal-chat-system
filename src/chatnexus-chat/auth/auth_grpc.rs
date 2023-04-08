@@ -1,12 +1,12 @@
 use tonic::{Request, Response, Status};
 
-use crate::{chat::{chatnexus_chat::{auth_server::{Auth}, AuthResponse, AuthRequest, AuthStage, AuthStatus}}, auth::PREAUTH_SESSION, helper};
+use crate::{chat::{chatnexus_chat::{auth_server::{Auth}, AuthResponse, AuthRequest, AuthStage, AuthStatus}}, auth::PREAUTH_SESSION, helper::{self, gen_string}};
 
 use super::AuthService;
 
 #[tonic::async_trait]
 impl Auth for AuthService {
-    async fn notify_auth_service(
+    async fn notify_auth2_service(
         &self, 
         request: Request<AuthRequest>
     ) -> Result<Response<AuthResponse>, Status> {
@@ -18,31 +18,25 @@ impl Auth for AuthService {
         if sessions.contains_key(data.session_id()) {
             let session_id = data.session_id();
             let auth_stage: AuthStage = *sessions.get(session_id).unwrap();
-            let mut response = self.build_response(
-                AuthStatus::Denied, 
-                AuthStage::Stage1, 
-                session_id, 
-                None, 
-                None
-            );
+            // gRPC Response
+            let mut response = self.build_response(AuthStatus::Denied, AuthStage::Stage1, session_id, None, None);
+            // Stage 1
             self.catch_stage(auth_stage, AuthStage::Stage1, || {
                 response.stage = Some(AuthStage::Stage2.into());
                 response.status  = AuthStatus::Ok.into();
-                helper::system_print(&format!("Authorizing '{}' for Stage 2.", session_id).to_string())
+                //helper::system_print(&format!("Authorizing '{}' for Stage 2.", session_id).to_string())
             });
-
+            // Stage 2
             self.catch_stage(auth_stage, AuthStage::Stage2, || {
-                // generate info they need..
                 response.stage = Some(AuthStage::Stage3.into());
                 response.status  = AuthStatus::Ok.into();
                 helper::system_print(&format!("Authorizing '{}' for Stage 3.", session_id).to_string())
             });
-
+            // Stage 3
             self.catch_stage(auth_stage, AuthStage::Stage3, || {
                 response.stage = Some(AuthStage::Stage3.into());
                 response.status  = AuthStatus::Ok.into();
                 helper::system_print(&format!("'{}' has been fully authenticated.", session_id).to_string())
-                // Wait for them to finish logging in. continous requests should be sent until the user has logged in
             });
             sessions.insert(session_id.to_string(), AuthStage::from_i32(response.stage.unwrap()).unwrap());
             return Ok(Response::new(response))
@@ -61,3 +55,27 @@ impl Auth for AuthService {
         }
     }
 }
+
+/*
+
+ // Stage 1
+            self.catch_stage(auth_stage, AuthStage::Stage1, || {
+                response.stage = Some(AuthStage::Stage2.into());
+                response.status  = AuthStatus::Ok.into();
+                helper::system_print(&format!("Authorizing '{}' for Stage 2.", session_id).to_string())
+            });
+            // Stage 2
+            self.catch_stage(auth_stage, AuthStage::Stage2, || {
+                // generate info they need..
+                response.stage = Some(AuthStage::Stage3.into());
+                response.status  = AuthStatus::Ok.into();
+                helper::system_print(&format!("Authorizing '{}' for Stage 3.", session_id).to_string())
+            });
+            // Stage 3
+            self.catch_stage(auth_stage, AuthStage::Stage3, || {
+                response.stage = Some(AuthStage::Stage3.into());
+                response.status  = AuthStatus::Ok.into();
+                helper::system_print(&format!("'{}' has been fully authenticated.", session_id).to_string())
+                // Wait for them to finish logging in. continous requests should be sent until the user has logged in
+            });
+ */

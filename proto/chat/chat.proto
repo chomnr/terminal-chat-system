@@ -23,7 +23,7 @@ enum AuthStage {
 }
 
 service Auth {
-    rpc NotifyAuthService(AuthRequest) returns (AuthResponse);
+    rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
 }
 
 message AuthRequest {

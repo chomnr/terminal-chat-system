@@ -16,7 +16,8 @@ pub struct AuthService {
     // Authorization Type.
     auth_type: AuthType,
     // Instance of AuthServer.
-    pub service: Option<AuthServer<Self>>
+    pub service: Option<AuthServer<Self>>,
+    pub redis: redis::Client
 }
 
 // Defining the implemenation of AuthService
@@ -28,11 +29,12 @@ impl AuthService {
     /// * `auth_type` - Your authorization type.
     /// 
     /// ```
-    pub fn new(auth_type: AuthType) -> Self {
+    pub fn new(auth_type: AuthType, redis_cli: redis::Client) -> Self {
         // Initializing the AuthService instance.
         let mut auth_service = Self {
             auth_type,
             service: None,
+            redis: redis_cli
         };
         // Because AuthServer requires an instance of AuthService.
         // we need to mark auth_service as mutable so ->
@@ -67,6 +69,8 @@ impl AuthService {
     /// * `status` - AuthStatus of the response.
     /// * `stage` - The AuthStage
     /// * `session_id` - The session_id.
+    /// * `url` - The OAuth2 url.
+    /// * `code` - The code you would like to assign to the user.
     /// 
     /// ```
     fn build_response(&self, 
