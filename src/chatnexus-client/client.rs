@@ -20,14 +20,6 @@ pub mod chatnexus_chat {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("    _____ _           _   _   _                     ");
-    println!(r"  / ____| |         | | | \ | |                    ");
-    println!(r" | |    | |__   __ _| |_|  \| | _____  ___   _ ___ ");
-    println!(r" | |    | '_ \ / _` | __| . ` |/ _ \ \/ / | | / __|");
-    println!(r" | |____| | | | (_| | |_| |\  |  __/>  <| |_| \__ \");
-    println!(r"  \_____|_| |_|\__,_|\__|_| \_|\___/_/\_\\__,_|___/");
-    println!("");
-
     // Address of the server we would like to connect to.
     let address = "http://[::1]:50051";
     // Connecting to AuthService
@@ -40,17 +32,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let presence_result = notify_presence.get_ref();
 
         // [Request] Stage Promotion gRPC
-        let mut request = AuthRequest { session_id: session_id.clone() };
+        let mut request = AuthRequest {
+            session_id: session_id.clone(),
+        };
 
-        println!("Server Authorization Method: {:?}\n", AuthType::from_i32(presence_result.auth_type).unwrap());
+        println!(
+            "Server Authorization Method: {:?}\n",
+            AuthType::from_i32(presence_result.auth_type).unwrap()
+        );
         if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Begin Authorization?")
             .interact()
             .unwrap()
-        {   
+        {
             // [Response] Stage Promotion gRPC
             let auth_promote = auth_client.promote_stage(request).await.unwrap();
             let promote_result = auth_promote.get_ref();
+            session_id = promote_result.session_id.to_string();
+            
+            
             println!("{:?}", promote_result);
         }
     }

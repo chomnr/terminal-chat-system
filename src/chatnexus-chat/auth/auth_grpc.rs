@@ -20,13 +20,33 @@ impl Auth for AuthService {
     async fn promote_stage(&self, request: Request<AuthRequest>) -> Result<Response<AuthResponse>, Status> {
         match self.get_session(&request.get_ref().session_id).await {
             Ok(session) => {
+                let mut response = self.build_response(
+                    AuthStatus::Ok,
+                    AuthStage::Stage1,
+                    &session.session_id,
+                    session.url, session.code);
                 self.catch_stage(session.stage, AuthStage::Stage1, || {
-
+                    response.set_stage(AuthStage::Stage2);
                 });
-                todo!()
+                self.catch_stage(session.stage, AuthStage::Stage2, || {
+                    response.set_stage(AuthStage::Stage3);
+                    response.url = Some("Hello.com".to_string());
+                    response.code = Some(helper::gen_string(7));
+                });
+                self.catch_stage(session.stage, AuthStage::Stage3, || {
+                    response.set_stage(AuthStage::Stage3)
+                });
+                self.update_stage(
+                    &session.session_id, 
+                    AuthStage::from_i32(response.stage.unwrap()).unwrap()
+                ).await.unwrap();
+                self.update_url(&session.session_id, &response.url).await.unwrap();
+                self.update_code(&session.session_id, &response.code).await.unwrap();
+                return Ok(Response::new(response))
             },
             Err(_) => {
-                todo!()
+                let newly_created = self.build_session(AuthStage::Stage1, None, None).await.unwrap();
+                return Ok(Response::new(self.build_response(AuthStatus::Ok, AuthStage::Stage1, &newly_created.session_id, None, None)))
             },
         }
     }
