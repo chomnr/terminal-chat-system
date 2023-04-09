@@ -1,10 +1,13 @@
+use std::borrow::Cow;
 use std::{collections::HashMap, sync::Mutex};
 
 use crate::auth::error::AuthError;
 use crate::chat::chatnexus_chat::{AuthStage, AuthType, AuthStatus, AuthResponse, AuthRequest};
 use crate::chat::chatnexus_chat::auth_server::{AuthServer, Auth};
+use crate::helper;
 
-use redis::{AsyncCommands};
+use mongodb::change_stream::session;
+use redis::{AsyncCommands, RedisResult};
 use serde::{Deserialize, Serialize};
 
 use self::error::AuthResult;
@@ -117,13 +120,12 @@ impl AuthService {
     /// 
     /// ```
     pub async fn build_session(&self, 
-        session_id: &str, 
         stage: AuthStage,
         url: Option<String>, 
         code: Option<String> ) {
         let conn = &mut self.redis.get_async_connection().await.unwrap();
         let user = AuthSession {
-            session_id: session_id.to_string(),
+            session_id: helper::gen_uuid(),
             stage,
             url,
             code
@@ -147,6 +149,36 @@ impl AuthService {
             AuthError::SessionNotFound(session_id.to_string())
         })?;
         Ok(serde_json::from_str(&session).unwrap())
+    }
+    /// Modify the AuthStage of a session...
+    /// 
+    /// # Arguments
+    /// 
+    /// * `session_id` - Session id of client.
+    /// * `stage` - The field you would like to modify.
+    /// 
+    /// ```
+    pub async fn update_stage(&self, session_id: &str, stage: AuthStage) -> AuthResult<()> {
+        let mut session = self.get_session(session_id).await?;
+        session.stage = stage;
+        self.save_session(session_id, session).await?;
+        Ok(())
+    }   
+    /// Purpose is to save sessions that already exist
+    /// 
+    /// # Arguments
+    /// 
+    /// * `session_id` - Session id of client.
+    /// * `session` - The session that was retrieved.
+    /// 
+    /// ```
+    async fn save_session(&self, session_id: &str, session: AuthSession) -> AuthResult<()> {
+        let conn = &mut self.redis.get_async_connection().await.unwrap();
+        let key = format!("session:{}", session_id).to_string();
+        conn.set(key, serde_json::to_string(&session).unwrap()).await
+        .map_err(|_| {
+            AuthError::FailedToUpdateSession(session_id.to_string())
+        })
     }
 
     /// Returns instance of [AuthServer].

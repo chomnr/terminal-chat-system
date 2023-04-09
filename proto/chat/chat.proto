@@ -24,9 +24,10 @@ enum AuthStage {
 }
 
 service Auth {
+    rpc NotifyPresence(Empty) returns (AuthPresenseResponse);
     //rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
-    rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
-    rpc NotifyAuthService(AuthRequest) returns (AuthResponse);
+    //rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
+    rpc PromoteStage(AuthRequest) returns (AuthResponse);
     //rpc CheckAuthStatus(AuthRequest) returns (AuthResponse);
 }
 
@@ -41,6 +42,10 @@ message AuthResponse {
     string session_id = 4;
     optional string url = 5;
     optional string code = 6;
+}
+
+message AuthPresenseResponse {
+    AuthType auth_type = 1;
 }
 
 // end of Auth

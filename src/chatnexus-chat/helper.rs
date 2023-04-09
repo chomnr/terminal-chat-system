@@ -14,3 +14,7 @@ pub fn gen_string(len: usize) -> String {
     .collect();
     result
 }
+
+pub fn gen_uuid() -> String {
+    uuid::Uuid::new_v4().simple().to_string()
+}
