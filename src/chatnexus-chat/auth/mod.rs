@@ -1,14 +1,29 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use crate::auth::error::AuthError;
 use crate::chat::chatnexus_chat::{AuthStage, AuthType, AuthStatus, AuthResponse, AuthRequest};
 use crate::chat::chatnexus_chat::auth_server::{AuthServer, Auth};
 
+use redis::{AsyncCommands};
+use serde::{Deserialize, Serialize};
+
+use self::error::AuthResult;
+
 mod auth_grpc;
+mod error;
 
 lazy_static::lazy_static! {
     // Helps reduce the amount of calls made to
     // the database.
     static ref PREAUTH_SESSION: Mutex<HashMap<String, AuthStage>> = Mutex::new(HashMap::new());
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct AuthSession {
+    session_id: String,
+    stage: AuthStage,
+    url: String,
+    code: String,
 }
 
 #[derive(Clone)]
@@ -89,6 +104,51 @@ impl AuthService {
             code: code,
         }
     }
+
+    /// Builds an [AuthSession] then stores the session inside
+    /// the redis database.
+    /// 
+    /// # Arguments
+    /// 
+    /// * `session_id` - Session id of client.
+    /// * `stage` - The AuthStage (should be Stage2)
+    /// * `url` - The OAuth2 url.
+    /// * `code` - The authentication code.
+    /// 
+    /// ```
+    pub async fn build_session(&self, 
+        session_id: &str, 
+        stage: AuthStage,
+        url: &str, 
+        code: &str ) {
+        let conn = &mut self.redis.get_async_connection().await.unwrap();
+        let user = AuthSession {
+            session_id: session_id.to_string(),
+            stage,
+            url: url.to_string(),
+            code: code.to_string(),
+        };
+        let key = format!("session:{}", &user.session_id).to_string();
+        conn.set(key, serde_json::to_string(&user).unwrap()).await.unwrap()
+    }
+
+    /// Looks for the user's session id inside redis if
+    /// found returns [AuthSession], if not returns [AuthError].
+    /// 
+    /// # Arguments
+    /// 
+    /// * `session_id` - Session id of client.
+    /// 
+    /// ```
+    pub async fn get_session(&self, session_id: &str) -> AuthResult<AuthSession> {
+        let conn = &mut self.redis.get_async_connection().await.unwrap();
+        let key = format!("session:{}", session_id).to_string();
+        let session: String = conn.get(key).await.map_err(|err| {
+            AuthError::SessionNotFound(session_id.to_string())
+        })?;
+        Ok(serde_json::from_str(&session).unwrap())
+    }
+
     /// Returns instance of [AuthServer].
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()

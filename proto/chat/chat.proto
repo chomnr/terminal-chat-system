@@ -23,11 +23,13 @@ enum AuthStage {
 }
 
 service Auth {
-    rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
+    //rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
+    rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
+    //rpc CheckAuthStatus(AuthRequest) returns (AuthResponse);
 }
 
 message AuthRequest {
-    optional string session_id = 1;
+    string session_id = 1;
 }
 
 message AuthResponse {

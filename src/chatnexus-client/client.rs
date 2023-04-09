@@ -26,6 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Client's Session ID
     let mut session_id = String::default();
     loop {
+        /*
         // Mutable Request/Response
         let mut request = AuthRequest {session_id: Some(session_id.to_string())};
         let mut response = auth_client.notify_auth2_service(request).await?;
@@ -48,6 +49,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 session_id = result.session_id.to_string();
             }
         }
+        */
     }
     /*
 
