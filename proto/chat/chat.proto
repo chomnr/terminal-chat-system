@@ -16,15 +16,17 @@ enum AuthStatus {
     DENIED = 2;
 }
 
-enum AuthStage { 
+enum AuthStage {
     STAGE_1 = 0; // Waiting for approval from the user...
     STAGE_2 = 1; // Create session_id and token for the user & url.
     STAGE_3 = 2; // Waiting to finish sign in page... through oauth2
+    COMPLETED = 3;
 }
 
 service Auth {
     //rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
     rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
+    rpc NotifyAuthService(AuthRequest) returns (AuthResponse);
     //rpc CheckAuthStatus(AuthRequest) returns (AuthResponse);
 }
 
@@ -39,10 +41,6 @@ message AuthResponse {
     string session_id = 4;
     optional string url = 5;
     optional string code = 6;
-}
-
-message AuthGenerationResponse {
-    string session_id = 1;
 }
 
 // end of Auth

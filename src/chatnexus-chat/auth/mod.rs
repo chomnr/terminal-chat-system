@@ -22,8 +22,8 @@ lazy_static::lazy_static! {
 pub struct AuthSession {
     session_id: String,
     stage: AuthStage,
-    url: String,
-    code: String,
+    url: Option<String>,
+    code: Option<String>,
 }
 
 #[derive(Clone)]
@@ -119,14 +119,14 @@ impl AuthService {
     pub async fn build_session(&self, 
         session_id: &str, 
         stage: AuthStage,
-        url: &str, 
-        code: &str ) {
+        url: Option<String>, 
+        code: Option<String> ) {
         let conn = &mut self.redis.get_async_connection().await.unwrap();
         let user = AuthSession {
             session_id: session_id.to_string(),
             stage,
-            url: url.to_string(),
-            code: code.to_string(),
+            url,
+            code
         };
         let key = format!("session:{}", &user.session_id).to_string();
         conn.set(key, serde_json::to_string(&user).unwrap()).await.unwrap()
@@ -143,7 +143,7 @@ impl AuthService {
     pub async fn get_session(&self, session_id: &str) -> AuthResult<AuthSession> {
         let conn = &mut self.redis.get_async_connection().await.unwrap();
         let key = format!("session:{}", session_id).to_string();
-        let session: String = conn.get(key).await.map_err(|err| {
+        let session: String = conn.get(key).await.map_err(|_| {
             AuthError::SessionNotFound(session_id.to_string())
         })?;
         Ok(serde_json::from_str(&session).unwrap())

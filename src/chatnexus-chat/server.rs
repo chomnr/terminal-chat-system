@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::net::{IpAddr, SocketAddr};
 
 use dotenv::dotenv;
@@ -21,7 +22,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // .env
     dotenv::dotenv().ok();
     // Databases
-    let redis = redis::Client::open(dotenv::var("REDIS_HOST").unwrap()).unwrap();
+    let url = format!("redis://:{}@{}:{}", 
+        dotenv::var("REDIS_PASSWORD").unwrap(),
+        dotenv::var("REDIS_HOST").unwrap(),
+        dotenv::var("REDIS_PORT").unwrap());
+    let redis = redis::Client::open(url).unwrap();
+    
     //let mut redis_conn = redis.get_async_connection().await.unwrap();
     // Services
     let chat = ChatService::new();
