@@ -133,7 +133,7 @@ impl AuthService {
             url: Some(Self::authorize_link()),
             code,
         };
-        let key = format!("session:{}", &user.session_id).to_string();
+        let key = format!("auth-session:{}", &user.session_id).to_string();
         let set = conn
             .set(key, serde_json::to_string(&user).unwrap())
             .await
@@ -151,7 +151,7 @@ impl AuthService {
     /// ```
     pub async fn get_session(&self, session_id: &str) -> AuthResult<AuthSession> {
         let conn = &mut self.redis.get_async_connection().await.unwrap();
-        let key = format!("session:{}", session_id).to_string();
+        let key = format!("auth-session:{}", session_id).to_string();
         let session: String = conn
             .get(key)
             .await
@@ -214,7 +214,7 @@ impl AuthService {
     /// ```
     async fn save_session(&self, session_id: &str, session: AuthSession) -> AuthResult<()> {
         let conn = &mut self.redis.get_async_connection().await.unwrap();
-        let key = format!("session:{}", session_id).to_string();
+        let key = format!("auth-session:{}", session_id).to_string();
         conn.set(key, serde_json::to_string(&session).unwrap())
             .await
             .map_err(|_| AuthError::FailedToUpdateSession(session_id.to_string()))
@@ -230,6 +230,7 @@ impl AuthService {
         )
         .to_string()
     }
+
     /// Returns instance of [AuthServer].
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()

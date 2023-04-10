@@ -32,7 +32,10 @@ impl Auth for AuthService {
                     response.set_stage(AuthStage::Stage3);
                 });
                 self.catch_stage(session.stage, AuthStage::Stage3, || {
-                    response.set_stage(AuthStage::Stage3);
+                    response.set_stage(AuthStage::Stage3); // make Stage3 -> Completed //check if activated = true.
+                });
+                self.catch_stage(session.stage, AuthStage::Completed, || {
+                    response.set_stage(AuthStage::Completed);
                 });
                 self.update_stage(
                     &session.session_id, 
