@@ -1,4 +1,4 @@
-use oauth2::{basic::BasicClient, ClientSecret, ClientId, AuthUrl, TokenUrl, RedirectUrl, Scope, CsrfToken};
+use oauth2::{basic::BasicClient, ClientSecret, ClientId, AuthUrl, TokenUrl, RedirectUrl, Scope, CsrfToken, PkceCodeChallenge};
 use rocket::{
     data::{Limits, ToByteUnit},
     get,
@@ -7,14 +7,9 @@ use rocket::{
     serde::json::{serde_json::json, Value},
 };
 use rocket_cors::{AllowedHeaders, AllowedOrigins};
+use routes::routes;
 
-
-#[get("/chatnexus/api")]
-async fn api_index() -> Value {
-    json!({
-        "message": "Nothing to see here."
-    })
-}
+mod routes;
 
 #[rocket::main]
 pub async fn main() -> Result<(), rocket::Error> {
@@ -42,8 +37,13 @@ pub async fn main() -> Result<(), rocket::Error> {
     )
     .set_redirect_uri(RedirectUrl::new(dotenv::var("OAUTH2_REDIRECT_URI").unwrap()).unwrap());
 
+    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
+
+// Generate the full authorization URL
+
     rocket::build()
-    .mount("/", routes![api_index])
+    .mount("/", routes())
+        .manage(client)
         .attach(cors)
         .ignite()
         .await?

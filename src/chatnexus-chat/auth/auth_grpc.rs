@@ -2,12 +2,11 @@ use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
 use crate::{
-    auth::PREAUTH_SESSION,
     chat::chatnexus_chat::{auth_server::Auth, AuthRequest, AuthResponse, AuthStage, AuthStatus, AuthPresenseResponse, Empty},
-    helper::{self, gen_string},
+    helper::{self},
 };
 
-use super::{AuthService, error::AuthError};
+use super::{AuthService};
 
 #[tonic::async_trait]
 impl Auth for AuthService {
