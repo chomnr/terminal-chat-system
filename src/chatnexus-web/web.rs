@@ -1,18 +1,25 @@
-use oauth2::{basic::BasicClient, ClientSecret, ClientId, AuthUrl, TokenUrl, RedirectUrl, Scope, CsrfToken, PkceCodeChallenge};
-use rocket::{
-    data::{Limits, ToByteUnit},
-    get,
-    http::Method,
-    routes,
-    serde::json::{serde_json::json, Value},
-};
-use rocket_cors::{AllowedHeaders, AllowedOrigins};
 use routes::routes;
 
+use crate::oauth2::{OAuth2Config, OAuth2};
+
 mod routes;
+mod chatter;
+mod oauth2;
 
 #[rocket::main]
 pub async fn main() -> Result<(), rocket::Error> {
+    dotenv::dotenv().ok();
+    let oauth2_client = OAuth2::new(OAuth2Config::default());
+    rocket::build()
+    .mount("/", routes())
+        .manage(oauth2_client)
+        .ignite().await?
+        .launch().await?;
+    Ok(())
+}
+
+
+/*
     // dotenv
     dotenv::dotenv().ok();
     // rocket_cors
@@ -27,27 +34,16 @@ pub async fn main() -> Result<(), rocket::Error> {
         ..Default::default()
     }.to_cors()
     .unwrap();
-    // oauth2
-    let client =
-    BasicClient::new(
-        ClientId::new(dotenv::var("OAUTH2_CLIENT_ID").unwrap()),
-        Some(ClientSecret::new(dotenv::var("OAUTH2_CLIENT_SECRET").unwrap())),
-        AuthUrl::new(dotenv::var("OAUTH2_AUTHORIZE").unwrap()).unwrap(),
-        Some(TokenUrl::new(dotenv::var("OAUTH2_TOKEN").unwrap()).unwrap())
-    )
-    .set_redirect_uri(RedirectUrl::new(dotenv::var("OAUTH2_REDIRECT_URI").unwrap()).unwrap());
 
-    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-
-// Generate the full authorization URL
+    let chatter_manager = ChatterManager::new(todo!(), todo!());
 
     rocket::build()
     .mount("/", routes())
-        .manage(client)
+        //.manage(client)
         .attach(cors)
+        .manage(state)
         .ignite()
         .await?
         .launch()
         .await?;
-    Ok(())
-}
+*/

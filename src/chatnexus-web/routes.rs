@@ -1,28 +1,55 @@
-use oauth2::{Client, ErrorResponse, TokenResponse, TokenType, TokenIntrospectionResponse, RevocableToken, basic::BasicClient, Scope};
+use oauth2::{AuthorizationCode, reqwest::async_http_client, TokenResponse};
 use rocket::{Route, routes, get, response::Redirect, State, post, http::CookieJar};
 use serde_json::{json, Value};
-use urlencoding::encode;
+
+use crate::oauth2::OAuth2;
 
 #[get("/?<code>")]
-fn index(jar: &CookieJar, code: String, oauth2: &State<BasicClient>) -> Value {
+async fn index(code: String, oauth2: &State<OAuth2>) -> Value {
+    let result = oauth2.exchange_auth_code(code).await;
+    let data = oauth2.post_discord(result.access_token()).await;
     json!({
-        "message": code
+        "id": data.id(),
+        "username": data.username(),
     })
 }
 
 #[get("/login")]
-fn login(oauth2: &State<BasicClient>) -> Redirect {
-    let auth_url = format!(
-        "{}?response_type=code&client_id={}&scope={}&redirect_uri={}&prompt=consent",
-        dotenv::var("OAUTH2_AUTHORIZE").unwrap(),
-        dotenv::var("OAUTH2_CLIENT_ID").unwrap(),
-        encode(&dotenv::var("OAUTH2_SCOPES").unwrap()),
-        encode(&dotenv::var("OAUTH2_REDIRECT_URI").unwrap())
-    )
-    .to_string();
-    Redirect::to(auth_url)
+fn login(oauth2: &State<OAuth2>) -> Redirect {
+    Redirect::to(oauth2.authorize_url())
 }
+
+
+pub fn routes() -> Vec<Route> {
+    routes![index, login]
+}
+
 /*
+
+#[get("/login")]
+fn login(oauth2: &State<OAuth2>) -> Redirect {
+    Redirect::to(oauth2.authorize_url())
+}
+
+#[get("/?<code>")]
+fn index(jar: &CookieJar, code: String, oauth2: &State<OAuth2>) -> Value {
+    /*
+    let code = oauth2.exchange_code(AuthorizationCode::new(code));
+    json!({
+        "message": code.tr
+    })
+    */
+    todo!()
+}
+
+ */
+
+
+/*
+json!({
+        "message": code
+    })
+
 #[get("/verify")]
 fn verify(oauth2: &State<BasicClient>) -> Value {
     json!({
@@ -31,14 +58,11 @@ fn verify(oauth2: &State<BasicClient>) -> Value {
 }
  */
 
+/*
 #[get("/verify")]
 fn verify(oauth2: &State<BasicClient>) -> Value {
     json!({
         "message": "dsasad"
     })
 }
-
-
-pub fn routes() -> Vec<Route> {
-    routes![login, verify, index]
-}
+*/
