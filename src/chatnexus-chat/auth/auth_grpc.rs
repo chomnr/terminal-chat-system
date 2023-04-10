@@ -1,4 +1,3 @@
-
 use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
@@ -33,7 +32,7 @@ impl Auth for AuthService {
                     response.set_stage(AuthStage::Stage3);
                 });
                 self.catch_stage(session.stage, AuthStage::Stage3, || {
-                    response.set_stage(AuthStage::Stage3)
+                    response.set_stage(AuthStage::Stage3);
                 });
                 self.update_stage(
                     &session.session_id, 
@@ -61,18 +60,3 @@ impl Auth for AuthService {
         Ok(Response::new(response))
     }
 }
-
-   /*
-    async fn check_auth_stage(
-        &self,
-        request: Request<AuthRequest>,
-    ) -> Result<Response<AuthResponse>, Status> {
-        let data = request.get_ref();
-        let future = self.get_session(&data.session_id).await;
-        let response = match future {
-            Ok(res) => self.build_response(AuthStatus::Ok, res.stage, &res.session_id, None, None),
-            Err(_) => self.build_response(AuthStatus::Denied, AuthStage::Stage1, "", None, None),
-        };
-        Ok(Response::new(response))
-    }
-     */

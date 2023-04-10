@@ -219,7 +219,6 @@ impl AuthService {
             .await
             .map_err(|_| AuthError::FailedToUpdateSession(session_id.to_string()))
     }
-
     /// Creates an OAuth2 URL
     fn authorize_link() -> String {
         format!(
@@ -231,7 +230,6 @@ impl AuthService {
         )
         .to_string()
     }
-
     /// Returns instance of [AuthServer].
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()

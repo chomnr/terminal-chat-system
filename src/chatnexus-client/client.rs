@@ -67,8 +67,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let a = auth_client.promote_stage(request.clone()).await.unwrap();
                 let b = a.get_ref();
                 current_stage = AuthStage::from_i32(b.stage.unwrap()).unwrap();
-                //println!("  URL: {}", b.url());
-                //println!("  Code: {}", b.code())
             }
 
             if current_stage == AuthStage::Stage3 {
@@ -82,6 +80,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     println!("\n  Code: {}", console::style(b.code()).bold().yellow().bright());
                     waiting = true
                 }
+            }
+            
+            if current_stage == AuthStage::Completed {
+                
             }
         }
     }
