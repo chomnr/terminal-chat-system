@@ -28,7 +28,7 @@ service Auth {
     //rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
     //rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
     rpc PromoteStage(AuthRequest) returns (AuthResponse);
-    //rpc CheckAuthStatus(AuthRequest) returns (AuthResponse);
+    rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
 }
 
 message AuthRequest {

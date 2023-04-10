@@ -9,6 +9,7 @@ use crate::helper;
 use mongodb::change_stream::session;
 use redis::{AsyncCommands, RedisResult};
 use serde::{Deserialize, Serialize};
+use urlencoding::encode;
 
 use self::error::AuthResult;
 
@@ -129,7 +130,7 @@ impl AuthService {
         let user = AuthSession {
             session_id: helper::gen_uuid(),
             stage,
-            url,
+            url: Some(Self::authorize_link()),
             code,
         };
         let key = format!("session:{}", &user.session_id).to_string();
@@ -217,6 +218,18 @@ impl AuthService {
         conn.set(key, serde_json::to_string(&session).unwrap())
             .await
             .map_err(|_| AuthError::FailedToUpdateSession(session_id.to_string()))
+    }
+
+    /// Creates an OAuth2 URL
+    fn authorize_link() -> String {
+        format!(
+            "{}?response_type=code&client_id={}&scope={}&redirect_uri={}&prompt=consent",
+            dotenv::var("OAUTH2_AUTHORIZE").unwrap(),
+            dotenv::var("OAUTH2_CLIENT_ID").unwrap(),
+            encode(&dotenv::var("OAUTH2_SCOPES").unwrap()),
+            encode(&dotenv::var("OAUTH2_REDIRECT_URI").unwrap())
+        )
+        .to_string()
     }
 
     /// Returns instance of [AuthServer].
