@@ -1,3 +1,4 @@
+use mongodb::options::ClientOptions;
 use serde::{Serialize, Deserialize};
 
 #[derive(Serialize, Deserialize)]
@@ -18,9 +19,11 @@ impl ChatterManager {
         Self { redis, mongodb }
     }
 
+    /*
     pub fn verify(&self) {
-        
+        &self.mongodb.default_database().unwrap().collection("name")
     }
 
     fn create(&self) {}
+    */
 }

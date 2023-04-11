@@ -22,11 +22,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // .env
     dotenv::dotenv().ok();
     // Databases
-    let url = format!("redis://:{}@{}:{}", 
+    let redis_url = format!("redis://:{}@{}:{}", 
         dotenv::var("REDIS_PASSWORD").unwrap(),
         dotenv::var("REDIS_HOST").unwrap(),
         dotenv::var("REDIS_PORT").unwrap());
-    let redis = redis::Client::open(url).unwrap();
+    let redis = redis::Client::open(redis_url).unwrap();
     
     //let mut redis_conn = redis.get_async_connection().await.unwrap();
     // Services

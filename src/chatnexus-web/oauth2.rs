@@ -87,7 +87,7 @@ impl OAuth2 {
             client,
         }
     }
-    /// Exchange the authorization code for access_code.
+    /// Exchange the authorization code for access code.
     ///
     /// # Arguments
     ///
@@ -97,21 +97,22 @@ impl OAuth2 {
     pub async fn exchange_auth_code(&self, code: String) -> StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>  {
         self.client.exchange_code(AuthorizationCode::new(code)).request_async(oauth2::reqwest::async_http_client).await.unwrap()
     }
-    /// Returns Discord User Struct
+    /// Sends a post request to discord @me and returns the DiscordUser
+    /// struct if it is successful.
     ///
     /// # Arguments
     ///
     /// * `access_token` - The access_token.
     ///
     /// ```
-    pub async fn post_discord(&self, access_token: &AccessToken) -> DiscordUser {
+    pub async fn post_discord(&self, access_token: &AccessToken) -> Result<DiscordUser, serde_json::Error> {
         let client = reqwest::Client::new();
         let response = client
             .get("https://discord.com/api/v10/users/@me")
             .header("content-type","application/x-www-form-urlencoded")
             .bearer_auth(access_token.secret()).send().await.unwrap();
-         let result: DiscordUser = serde_json::from_str(&response.text().await.unwrap()).unwrap();
-         result
+         let result: DiscordUser = serde_json::from_str(&response.text().await.unwrap())?;
+         Ok(result)
     }
     /// Returns the Authorization URL
     pub fn authorize_url(&self) -> String {

@@ -1,3 +1,7 @@
+use std::fmt::format;
+
+use chatter::ChatterManager;
+use mongodb::options::ClientOptions;
 use routes::routes;
 
 use crate::oauth2::{OAuth2Config, OAuth2};
@@ -9,10 +13,28 @@ mod oauth2;
 #[rocket::main]
 pub async fn main() -> Result<(), rocket::Error> {
     dotenv::dotenv().ok();
+    // Databases
+        // Redis
+    let redis_url = format!("redis://:{}@{}:{}", 
+        dotenv::var("REDIS_PASSWORD").unwrap(),
+        dotenv::var("REDIS_HOST").unwrap(),
+        dotenv::var("REDIS_PORT").unwrap());
+    let redis = redis::Client::open(redis_url).unwrap();
+        // Mongodb
+    let mongodb_url = format!("mongodb+srv://{}:{}@{}/?retryWrites=true&w=majority",
+        dotenv::var("MONGODB_USERNAME").unwrap(),
+        dotenv::var("MONGODB_PASSWORD").unwrap(),
+        dotenv::var("MONGODB_HOST").unwrap());
+    let mut mongodb_options = ClientOptions::parse(mongodb_url).await.unwrap();
+    let mongodb = mongodb::Client::with_options(mongodb_options).unwrap();  
+    // OAuth2
     let oauth2_client = OAuth2::new(OAuth2Config::default());
+    // Chatter
+    let chatter_manager = ChatterManager::new(redis, mongodb);
     rocket::build()
     .mount("/", routes())
         .manage(oauth2_client)
+        .manage(chatter_manager)
         .ignite().await?
         .launch().await?;
     Ok(())
