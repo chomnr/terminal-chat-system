@@ -225,6 +225,11 @@ impl AuthService {
         .to_string()
     }
 
+    // verify
+    async fn verify(&self, session_id: &str, code: &str) {
+
+    }
+
     /// Returns instance of [AuthServer].
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()

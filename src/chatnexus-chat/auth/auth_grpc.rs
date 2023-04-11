@@ -2,7 +2,7 @@ use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
 use crate::{
-    chat::chatnexus_chat::{auth_server::Auth, AuthRequest, AuthResponse, AuthStage, AuthStatus, AuthPresenseResponse, Empty},
+    chat::chatnexus_chat::{auth_server::Auth, AuthRequest, AuthResponse, AuthStage, AuthStatus, AuthPresenseResponse, Empty, AuthVerifyRequest, AuthVerifyResponse},
     helper::{self},
 };
 
@@ -60,5 +60,17 @@ impl Auth for AuthService {
             Err(_) => self.build_response(AuthStatus::Denied, AuthStage::Stage1, "", None, None),
         };
         Ok(Response::new(response))
+    }
+    async fn verify_user(
+        &self,
+        request: tonic::Request<AuthVerifyRequest>) -> Result<Response<AuthVerifyResponse>, Status> {
+            let data = request.get_ref();
+            if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
+                
+            } else {
+                let response = AuthVerifyResponse { status: AuthStatus::Denied.into() };
+                return Ok(Response::new(response))
+            }
+        todo!()
     }
 }
