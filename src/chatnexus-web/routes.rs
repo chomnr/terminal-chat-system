@@ -1,10 +1,35 @@
 use oauth2::{AuthorizationCode, reqwest::async_http_client, TokenResponse};
-use rocket::{Route, routes, get, response::Redirect, State, post, http::{CookieJar, Cookie}, serde::json::Json};
+use rocket::{Route, routes, get, response::Redirect, State, post, serde::json::Json};
+use rocket::http::{CookieJar, Cookie};
 use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 use tonic::transport::Channel;
 
 use crate::{oauth2::OAuth2, chatnexus_chat::auth_client::AuthClient};
+
+#[get("/?<code>")]
+async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
+    let result = oauth2.exchange_auth_code(code).await;
+    let data = oauth2.post_discord(result.access_token()).await;
+    match data {
+        Ok(val) => {
+            let cookie = Cookie::build("sid", serde_json::to_string(&val).unwrap())
+            .same_site(rocket::http::SameSite::None)
+            .secure(false) // important to enable this if you have https..
+            .finish();
+            jar.add_private(cookie);
+            Ok(Redirect::to("/verify"))
+        },
+        Err(_) => return Err(
+            json!({
+                "message": "failed to authorize with the intermediator"
+            })
+        ),
+    }
+}
+pub fn routes() -> Vec<Route> {
+    routes![index]
+}
 
 /* 
 #[get("/?<code>")]
@@ -68,18 +93,6 @@ fn identitycheck(identity: Json<IdentityCheck>, jar: &CookieJar<'_>) -> Value {
 }
 */
 
-#[get("/?<code>")]
-async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
-    let result = oauth2.exchange_auth_code(code).await;
-    let data = oauth2.post_discord(result.access_token()).await;
-    match data {
-        Ok(_) => todo!(),
-        Err(_) => todo!(),
-    }
-}
-pub fn routes() -> Vec<Route> {
-    routes![index]
-}
 
  //let cookie = Cookie::build("name", serde_json::to_string(&data).unwrap());
     
