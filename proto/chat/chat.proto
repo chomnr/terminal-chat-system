@@ -25,7 +25,7 @@ service Auth {
     rpc NotifyPresence(Empty) returns (AuthPresenseResponse);
     rpc PromoteStage(AuthRequest) returns (AuthResponse);
     rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
-    //rpc VerifyUser(VerifyRequest) returns (VerifyResponse) webclient sends this to server if the user exists
+    rpc VerifyUser(AuthVerifyRequest) returns (AuthVerifyResponse); // Used only by the web server..
 }
 
 message AuthRequest {
@@ -44,6 +44,19 @@ message AuthResponse {
 message AuthPresenseResponse {
     AuthType auth_type = 1;
 }
+
+message AuthVerifyRequest {
+    string secret_key = 1;
+    string session_id = 2;
+    string code = 3;
+}
+
+message AuthVerifyResponse {
+    AuthStatus status = 1;
+}
+
+
+
 
 // end of Auth
 
