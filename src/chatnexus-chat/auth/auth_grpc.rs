@@ -104,6 +104,7 @@ impl Auth for AuthService {
             };
             match self.verify_session(&data.session_id, &data.code, user_info).await {
                 Ok(_) => {
+                    println!("Finished Authentication for {}", data.session_id);
                     return Ok(Response::new(AuthVerifyResponse {
                         status: AuthStatus::Ok.into(),
                     }));

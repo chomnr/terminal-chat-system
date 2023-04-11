@@ -2,6 +2,7 @@ use std::fmt::format;
 
 use chatnexus_chat::auth_client::AuthClient;
 use mongodb::options::ClientOptions;
+use rocket::futures::lock::Mutex;
 use routes::routes;
 
 use crate::oauth2::{OAuth2Config, OAuth2};
@@ -20,7 +21,7 @@ pub async fn main() -> Result<(), rocket::Error> {
     let oauth2_client = OAuth2::new(OAuth2Config::default());
     // rGPC 
     let address = "http://[::1]:50051";
-    let mut auth_client = AuthClient::connect(address).await.unwrap();
+    let auth_client = Mutex::new(AuthClient::connect(address).await.unwrap());
     // Rocket
     rocket::build()
     .mount("/", routes())
