@@ -16,12 +16,6 @@ use self::error::AuthResult;
 mod auth_grpc;
 mod error;
 
-lazy_static::lazy_static! {
-    // Helps reduce the amount of calls made to
-    // the database.
-    static ref PREAUTH_SESSION: Mutex<HashMap<String, AuthStage>> = Mutex::new(HashMap::new());
-}
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct AuthSession {
     session_id: String,

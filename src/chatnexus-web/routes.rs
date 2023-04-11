@@ -1,8 +1,9 @@
 use oauth2::{AuthorizationCode, reqwest::async_http_client, TokenResponse};
-use rocket::{Route, routes, get, response::Redirect, State, post, http::{CookieJar, Cookie}};
+use rocket::{Route, routes, get, response::Redirect, State, post, http::{CookieJar, Cookie}, serde::json::Json};
+use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 
-use crate::oauth2::OAuth2;
+use crate::{oauth2::OAuth2, chatter::ChatterManager};
 
 #[get("/?<code>")]
 async fn index(code: String, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
@@ -50,12 +51,18 @@ fn verify(jar: &CookieJar<'_>, oauth2: &State<OAuth2>) -> Value {
     }
 }
 
-#[post("/identity/check")]
-fn identitycheck(jar: &CookieJar<'_>, oauth2: &State<OAuth2>) -> Value {
-    //Redirect::to(oauth2.authorize_url())
-    json!({
-        "message": "Check identity"
-    })
+
+#[derive(Serialize, Deserialize)]
+pub struct IdentityCheck {
+    session_id: String,
+    code: String
+}
+
+#[post("/identity/check", data = "<identity>")]
+fn identitycheck(identity: Json<IdentityCheck>, jar: &CookieJar<'_>, chatter: &State<ChatterManager>) -> Value {
+    let creds = identity.0;
+   // chatter.verify("session_id", "code");
+    todo!()
 }
 
 pub fn routes() -> Vec<Route> {

@@ -10,6 +10,10 @@ mod routes;
 mod chatter;
 mod oauth2;
 
+pub mod chatnexus_chat {
+    tonic::include_proto!("chatnexus.chat");
+}
+
 #[rocket::main]
 pub async fn main() -> Result<(), rocket::Error> {
     dotenv::dotenv().ok();
