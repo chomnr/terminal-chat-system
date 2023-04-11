@@ -2,9 +2,11 @@ use oauth2::{AuthorizationCode, reqwest::async_http_client, TokenResponse};
 use rocket::{Route, routes, get, response::Redirect, State, post, http::{CookieJar, Cookie}, serde::json::Json};
 use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
+use tonic::transport::Channel;
 
-use crate::{oauth2::OAuth2, chatter::ChatterManager};
+use crate::{oauth2::OAuth2, chatnexus_chat::auth_client::AuthClient};
 
+/* 
 #[get("/?<code>")]
 async fn index(code: String, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
     let result = oauth2.exchange_auth_code(code).await;
@@ -16,7 +18,7 @@ async fn index(code: String, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Res
         Ok(user) => {
             let cookie = Cookie::build("sid", serde_json::to_string(&user).unwrap())
                 .same_site(rocket::http::SameSite::None)
-                .secure(false)
+                .secure(false) // important to enable this if you have https..
                 .finish();
             jar.add(cookie);
             Ok(Redirect::to("/verify"))
@@ -59,14 +61,24 @@ pub struct IdentityCheck {
 }
 
 #[post("/identity/check", data = "<identity>")]
-fn identitycheck(identity: Json<IdentityCheck>, jar: &CookieJar<'_>, chatter: &State<ChatterManager>) -> Value {
+fn identitycheck(identity: Json<IdentityCheck>, jar: &CookieJar<'_>) -> Value {
     let creds = identity.0;
    // chatter.verify("session_id", "code");
     todo!()
 }
+*/
 
+#[get("/?<code>")]
+async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
+    let result = oauth2.exchange_auth_code(code).await;
+    let data = oauth2.post_discord(result.access_token()).await;
+    match data {
+        Ok(_) => todo!(),
+        Err(_) => todo!(),
+    }
+}
 pub fn routes() -> Vec<Route> {
-    routes![index, login, verify, identitycheck]
+    routes![index]
 }
 
  //let cookie = Cookie::build("name", serde_json::to_string(&data).unwrap());

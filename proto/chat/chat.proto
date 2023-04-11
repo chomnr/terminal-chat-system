@@ -23,10 +23,9 @@ enum AuthStage {
 
 service Auth {
     rpc NotifyPresence(Empty) returns (AuthPresenseResponse);
-    //rpc NotifyAuth2Service(AuthRequest) returns (AuthResponse);
-    //rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
     rpc PromoteStage(AuthRequest) returns (AuthResponse);
     rpc CheckAuthStage(AuthRequest) returns (AuthResponse);
+    //rpc VerifyUser(VerifyRequest) returns (VerifyResponse) webclient sends this to server if the user exists
 }
 
 message AuthRequest {
