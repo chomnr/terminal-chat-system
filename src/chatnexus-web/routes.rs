@@ -1,10 +1,13 @@
 use oauth2::{AuthorizationCode, reqwest::async_http_client, TokenResponse};
+use rocket::futures::lock::Mutex;
 use rocket::{Route, routes, get, response::Redirect, State, post, serde::json::Json};
 use rocket::http::{CookieJar, Cookie};
 use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 use tonic::transport::Channel;
 
+use crate::chatnexus_chat::{AuthRequest, AuthVerifyRequest};
+use crate::oauth2::DiscordUser;
 use crate::{oauth2::OAuth2, chatnexus_chat::auth_client::AuthClient};
 
 #[derive(Serialize, Deserialize)]
@@ -34,16 +37,32 @@ async fn index(code: String, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Res
     }
 }
 
-
 #[post("/identity/check", data = "<identity>")]
-fn identitycheck(identity: Json<IdentityCheck>, auth: &State<AuthClient<Channel>>, jar: &CookieJar<'_>) -> Value {
+async fn identity_check(identity: Json<IdentityCheck>, auth: &State<Mutex<AuthClient<Channel>>>, jar: &CookieJar<'_>) -> Value {
     let creds = identity.0;
-   // chatter.verify("session_id", "code");
-    todo!()
+
+    if jar.get_private("sid").is_some() {
+        let discord_user: DiscordUser = serde_json::from_str(jar.get_private("sid").unwrap().value()).unwrap();
+        let request = AuthVerifyRequest {
+            session_id: creds.session_id,
+            code: creds.code,
+            uid: discord_user.id().to_string(),
+            secret_key: dotenv::var("WEB_SECRET_KEY").unwrap().to_string(),
+            username: discord_user.username().to_string(),
+            discriminator: discord_user.discriminator().to_string(),
+        };
+        auth.lock().await.verify_user(request).await.unwrap();
+        return json!({
+            "message": "success!"
+        })
+    }
+    return json!({
+        "message": "failure!"
+    })
 }
 
 pub fn routes() -> Vec<Route> {
-    routes![index]
+    routes![index, identity_check]
 }
 
 /* 
