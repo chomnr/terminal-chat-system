@@ -1,11 +1,15 @@
+use serde::{Serialize, Deserialize};
+
 use crate::chatnexus_chat::chat_server::ChatServer;
 
 mod chat_grpc;
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct ChatUser {
-    uid: String,
-    username: String,
-    discriminator: String
+    pub uid: String,
+    pub username: String,
+    pub discriminator: String,
+    pub session_id: String
 }
 
 #[derive(Clone)]
@@ -23,6 +27,7 @@ impl ChatService {
         chat_service.service = Some(ChatServer::new(chat_service.clone()));
         chat_service
     }
+    
     pub fn service(self) -> ChatServer<ChatService> {
         self.service.unwrap()
     }

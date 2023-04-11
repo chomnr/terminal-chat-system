@@ -25,15 +25,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let address = "http://[::1]:50051";
     // Connecting to AuthService
     let mut auth_client = AuthClient::connect(address).await.unwrap();
+    let mut chat_client = ChatClient::connect(address).await.unwrap();
     // Client's Session ID
     let mut session_id = String::default();
     let mut current_stage = AuthStage::Stage1;
-    let mut waiting = false;
+    // Notifying server of Client's presence.
+    let notify_presence = auth_client.notify_presence(Empty::default()).await?;
+    let presence_result = notify_presence.get_ref();
+    // Handle OAuth2 Authorization
+    if presence_result.auth_type() == AuthType::OAuth2 {
+        // Do OAuth2 Authorization...
+    }
+
+    // check if is authenticated if it is create a separate loop.. that handles just the chatclient requests
+    /*
     loop {
         // [Request/Response] Presence gRPC
-        let notify_presence = auth_client.notify_presence(Empty::default()).await?;
-        let presence_result = notify_presence.get_ref();
 
+        
         // [Request] Stage Promotion gRPC
         let mut request = AuthRequest {
             session_id: session_id.clone(),
@@ -89,6 +98,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     waiting = true
                 }
             }
-        }
+            */
+        Ok(())
     }
-}

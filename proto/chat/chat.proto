@@ -49,6 +49,9 @@ message AuthVerifyRequest {
     string secret_key = 1;
     string session_id = 2;
     string code = 3;
+    string uid = 4;
+    string username = 5;
+    string discriminator = 6;
 }
 
 message AuthVerifyResponse {

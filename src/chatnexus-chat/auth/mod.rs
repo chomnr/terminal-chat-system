@@ -2,6 +2,7 @@ use std::borrow::Cow;
 use std::{collections::HashMap, sync::Mutex};
 
 use crate::auth::error::AuthError;
+use crate::chat::ChatUser;
 use crate::chatnexus_chat::{AuthStage, AuthType, AuthResponse, AuthStatus};
 use crate::chatnexus_chat::auth_server::AuthServer;
 use crate::helper;
@@ -102,7 +103,6 @@ impl AuthService {
             code: code,
         }
     }
-
     /// Builds an [AuthSession] then stores the session inside
     /// the redis database.
     ///
@@ -134,7 +134,6 @@ impl AuthService {
             .map_err(|_| AuthError::SessionNotFound(user.clone().session_id))?;
         Ok(user)
     }
-
     /// Looks for the user's session id inside redis if
     /// found returns [AuthSession], if not returns [AuthError].
     ///
@@ -213,6 +212,27 @@ impl AuthService {
             .await
             .map_err(|_| AuthError::FailedToUpdateSession(session_id.to_string()))
     }
+    /// Verifies the client's session.
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - Session id of client.
+    /// * `code` - The given code.
+    ///
+    /// ```
+    pub async fn verify_session(&self, session_id: &str, code: &str, user_info: ChatUser) -> AuthResult<()> {
+        let conn = &mut self.redis.get_async_connection().await.unwrap();
+        match self.get_session(session_id).await {
+            Ok(val) => {
+                if val.code.unwrap().eq(code) {
+                    let key = format!("chatter:{}", session_id).to_string();
+                    conn.set(key, serde_json::to_string(&user_info).unwrap()).await.unwrap()
+                }
+                return Err(AuthError::SessionValidationFailed(session_id.to_string()))
+            },
+            Err(_) => Err(AuthError::SessionNotFound(session_id.to_string())),
+        }
+    }
     /// Creates an OAuth2 URL
     fn authorize_link() -> String {
         format!(
@@ -224,23 +244,6 @@ impl AuthService {
         )
         .to_string()
     }
-
-    // verify
-    pub async fn verify_user(&self, session_id: &str, code: &str) -> AuthResult<()> {
-        match self.get_session(session_id).await {
-            Ok(val) => {
-                if val.code.unwrap().eq(code) {
-                    // create row in mongodb... store only their uid and their chat logs..
-                    // create chat-session:<session_id> -> AuthenticatedUser
-                    // delete session.
-                    todo!()
-                }
-                todo!()
-            },
-            Err(_) => todo!(),
-        }
-    }
-
     /// Returns instance of [AuthServer].
     pub fn service(self) -> AuthServer<AuthService> {
         self.service.unwrap()

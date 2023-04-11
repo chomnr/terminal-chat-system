@@ -2,26 +2,39 @@ use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
 use crate::{
-    helper::{self}, chatnexus_chat::{auth_server::Auth, Empty, AuthPresenseResponse, AuthResponse, AuthRequest, AuthStatus, AuthStage, AuthVerifyResponse, AuthVerifyRequest},
+    chatnexus_chat::{
+        auth_server::Auth, AuthPresenseResponse, AuthRequest, AuthResponse, AuthStage, AuthStatus,
+        AuthVerifyRequest, AuthVerifyResponse, Empty,
+    },
+    helper::{self}, chat::ChatUser,
 };
 
-use super::{AuthService};
+use super::AuthService;
 
 #[tonic::async_trait]
 impl Auth for AuthService {
-    async fn notify_presence(&self, request: Request<Empty>) -> Result<Response<AuthPresenseResponse>, Status> {
+    async fn notify_presence(
+        &self,
+        request: Request<Empty>,
+    ) -> Result<Response<AuthPresenseResponse>, Status> {
         Ok(Response::new(AuthPresenseResponse {
             auth_type: self.auth_type.into(),
         }))
     }
-    async fn promote_stage(&self, request: Request<AuthRequest>) -> Result<Response<AuthResponse>, Status> {
+
+    async fn promote_stage(
+        &self,
+        request: Request<AuthRequest>,
+    ) -> Result<Response<AuthResponse>, Status> {
         match self.get_session(&request.get_ref().session_id).await {
             Ok(session) => {
                 let mut response = self.build_response(
                     AuthStatus::Ok,
                     AuthStage::Stage1,
                     &session.session_id,
-                    session.url, session.code);
+                    session.url,
+                    session.code,
+                );
                 self.catch_stage(session.stage, AuthStage::Stage1, || {
                     response.set_stage(AuthStage::Stage2);
                     response.code = Some(helper::gen_string(7));
@@ -31,23 +44,39 @@ impl Auth for AuthService {
                 });
                 self.catch_stage(session.stage, AuthStage::Stage3, || {
                     response.set_stage(AuthStage::Stage3); // make Stage3 -> Completed //check if activated = true.
+                    response.set_status(AuthStatus::Pending);
                 });
                 self.catch_stage(session.stage, AuthStage::Completed, || {
+                    println!("COMPLETED");
                     response.set_stage(AuthStage::Completed);
                 });
                 self.update_stage(
-                    &session.session_id, 
-                    AuthStage::from_i32(response.stage.unwrap()).unwrap()
-                ).await.unwrap();
-                self.update_code(&session.session_id, &response.code).await.unwrap();
-                return Ok(Response::new(response))
-            },
+                    &session.session_id,
+                    AuthStage::from_i32(response.stage.unwrap()).unwrap(),
+                )
+                .await
+                .unwrap();
+                self.update_code(&session.session_id, &response.code)
+                    .await
+                    .unwrap();
+                return Ok(Response::new(response));
+            }
             Err(_) => {
-                let newly_created = self.build_session(AuthStage::Stage1, None, None).await.unwrap();
-                return Ok(Response::new(self.build_response(AuthStatus::Ok, AuthStage::Stage1, &newly_created.session_id, newly_created.url, None)))
-            },
+                let newly_created = self
+                    .build_session(AuthStage::Stage1, None, None)
+                    .await
+                    .unwrap();
+                return Ok(Response::new(self.build_response(
+                    AuthStatus::Ok,
+                    AuthStage::Stage1,
+                    &newly_created.session_id,
+                    newly_created.url,
+                    None,
+                )));
+            }
         }
     }
+
     async fn check_auth_stage(
         &self,
         request: Request<AuthRequest>,
@@ -60,16 +89,36 @@ impl Auth for AuthService {
         };
         Ok(Response::new(response))
     }
+
     async fn verify_user(
         &self,
-        request: tonic::Request<AuthVerifyRequest>) -> Result<Response<AuthVerifyResponse>, Status> {
-            let data = request.get_ref();
-            if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
-                
-            } else {
-                let response = AuthVerifyResponse { status: AuthStatus::Denied.into() };
-                return Ok(Response::new(response))
+        request: tonic::Request<AuthVerifyRequest>,
+    ) -> Result<Response<AuthVerifyResponse>, Status> {
+        let data = request.get_ref();
+        if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
+            let user_info = ChatUser {
+                uid: data.uid.to_string(),
+                username: data.username.to_string(),
+                discriminator: data.discriminator.to_string(),
+                session_id: data.session_id.to_string()
+            };
+            match self.verify_session(&data.session_id, &data.code, user_info).await {
+                Ok(_) => {
+                    return Ok(Response::new(AuthVerifyResponse {
+                        status: AuthStatus::Ok.into(),
+                    }));
+                },
+                Err(_) => {
+                    return Ok(Response::new(AuthVerifyResponse {
+                        status: AuthStatus::Denied.into(),
+                    }));
+                },
             }
+        } else {
+            return Ok(Response::new(AuthVerifyResponse {
+                status: AuthStatus::Denied.into(),
+            }));
+        }
         todo!()
     }
 }

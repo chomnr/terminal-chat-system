@@ -14,7 +14,7 @@ pub struct IdentityCheck {
 }
 
 #[get("/?<code>")]
-async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
+async fn index(code: String, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
     let result = oauth2.exchange_auth_code(code).await;
     let data = oauth2.post_discord(result.access_token()).await;
     match data {
@@ -36,7 +36,7 @@ async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<O
 
 
 #[post("/identity/check", data = "<identity>")]
-fn identitycheck(identity: Json<IdentityCheck>, jar: &CookieJar<'_>) -> Value {
+fn identitycheck(identity: Json<IdentityCheck>, auth: &State<AuthClient<Channel>>, jar: &CookieJar<'_>) -> Value {
     let creds = identity.0;
    // chatter.verify("session_id", "code");
     todo!()
