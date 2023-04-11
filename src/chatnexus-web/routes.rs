@@ -7,6 +7,12 @@ use tonic::transport::Channel;
 
 use crate::{oauth2::OAuth2, chatnexus_chat::auth_client::AuthClient};
 
+#[derive(Serialize, Deserialize)]
+pub struct IdentityCheck {
+    session_id: String,
+    code: String
+}
+
 #[get("/?<code>")]
 async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
     let result = oauth2.exchange_auth_code(code).await;
@@ -14,19 +20,28 @@ async fn index(code: String, auth: &State<AuthClient<Channel>>, oauth2: &State<O
     match data {
         Ok(val) => {
             let cookie = Cookie::build("sid", serde_json::to_string(&val).unwrap())
-            .same_site(rocket::http::SameSite::None)
-            .secure(false) // important to enable this if you have https..
-            .finish();
+                .same_site(rocket::http::SameSite::None)
+                .secure(false) // important to enable this if you have https..
+                .finish();
             jar.add_private(cookie);
             Ok(Redirect::to("/verify"))
         },
-        Err(_) => return Err(
+        Err(_) => return Err (
             json!({
                 "message": "failed to authorize with the intermediator"
             })
         ),
     }
 }
+
+
+#[post("/identity/check", data = "<identity>")]
+fn identitycheck(identity: Json<IdentityCheck>, jar: &CookieJar<'_>) -> Value {
+    let creds = identity.0;
+   // chatter.verify("session_id", "code");
+    todo!()
+}
+
 pub fn routes() -> Vec<Route> {
     routes![index]
 }

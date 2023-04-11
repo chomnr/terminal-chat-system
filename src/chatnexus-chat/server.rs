@@ -7,11 +7,15 @@ use tonic::transport::Channel;
 use tonic::{transport::Server, Request, Response, Status};
 use crate::auth::AuthService;
 use crate::chat::ChatService;
-use chat::chatnexus_chat::AuthType;
+use crate::chatnexus_chat::AuthType;
 
-mod chat;
 mod auth;
 mod helper;
+mod chat;
+
+pub mod chatnexus_chat {
+    tonic::include_proto!("chatnexus.chat");
+}
 
 /// Information about the gRPC.
 const SERVER_NAME: &str = "Test Chat Server Name";
@@ -30,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     //let mut redis_conn = redis.get_async_connection().await.unwrap();
     // Services
-    let chat = ChatService::new();
+    let chat = ChatService::new(redis.clone());
     let auth = AuthService::new(AuthType::OAuth2, redis);
         
     let addr: SocketAddr = ADDRESS.parse().unwrap();

@@ -2,8 +2,7 @@ use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
 use crate::{
-    chat::chatnexus_chat::{auth_server::Auth, AuthRequest, AuthResponse, AuthStage, AuthStatus, AuthPresenseResponse, Empty, AuthVerifyRequest, AuthVerifyResponse},
-    helper::{self},
+    helper::{self}, chatnexus_chat::{auth_server::Auth, Empty, AuthPresenseResponse, AuthResponse, AuthRequest, AuthStatus, AuthStage, AuthVerifyResponse, AuthVerifyRequest},
 };
 
 use super::{AuthService};

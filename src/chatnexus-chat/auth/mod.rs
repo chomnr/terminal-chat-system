@@ -2,8 +2,8 @@ use std::borrow::Cow;
 use std::{collections::HashMap, sync::Mutex};
 
 use crate::auth::error::AuthError;
-use crate::chat::chatnexus_chat::auth_server::{Auth, AuthServer};
-use crate::chat::chatnexus_chat::{AuthRequest, AuthResponse, AuthStage, AuthStatus, AuthType};
+use crate::chatnexus_chat::{AuthStage, AuthType, AuthResponse, AuthStatus};
+use crate::chatnexus_chat::auth_server::AuthServer;
 use crate::helper;
 
 use mongodb::change_stream::session;
@@ -226,8 +226,19 @@ impl AuthService {
     }
 
     // verify
-    async fn verify(&self, session_id: &str, code: &str) {
-
+    pub async fn verify_user(&self, session_id: &str, code: &str) -> AuthResult<()> {
+        match self.get_session(session_id).await {
+            Ok(val) => {
+                if val.code.unwrap().eq(code) {
+                    // create row in mongodb... store only their uid and their chat logs..
+                    // create chat-session:<session_id> -> AuthenticatedUser
+                    // delete session.
+                    todo!()
+                }
+                todo!()
+            },
+            Err(_) => todo!(),
+        }
     }
 
     /// Returns instance of [AuthServer].
