@@ -225,10 +225,8 @@ impl AuthService {
         match self.get_session(session_id).await {
             Ok(val) => {
                 if val.clone().code.unwrap().eq(code) {
-                    let key = format!("chatter:{}", session_id).to_string();
-                    let mut cloned_session = val.clone();
-                    cloned_session.stage = AuthStage::Completed;
-                    self.save_session(session_id, cloned_session).await.unwrap();
+                    let key = format!("chat-session:{}", session_id).to_string();
+                    self.update_stage(session_id, AuthStage::Completed).await.unwrap();
                     conn.set(key, serde_json::to_string(&user_info).unwrap()).await.unwrap()
                 }
                 return Err(AuthError::SessionValidationFailed(session_id.to_string()))
@@ -236,6 +234,9 @@ impl AuthService {
             Err(_) => Err(AuthError::SessionNotFound(session_id.to_string())),
         }
     }
+    // check for verification
+    pub async fn is_session_verified(){}
+
     /// Creates an OAuth2 URL
     fn authorize_link() -> String {
         format!(

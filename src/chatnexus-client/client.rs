@@ -7,7 +7,7 @@ use chatnexus_chat::{chat_client::ChatClient, AuthStage, AuthStatus};
 use dialoguer::{
     console::Term,
     theme::{self, ColorfulTheme, SimpleTheme},
-    Confirm,
+    Confirm, Input,
 };
 use oauth2::{
     helpers,
@@ -92,7 +92,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 .yellow()
                                 .bright()
                         );
-                        thread::sleep(time::Duration::from_secs(10))
+                        //thread::sleep(time::Duration::from_secs(10))
                     }
                     if res.get_ref().stage() == AuthStage::Completed {
                         Term::stdout().clear_screen().unwrap();
@@ -103,11 +103,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                                 .green()
                                 .bright()
                         );
-                        thread::sleep(time::Duration::from_secs(3))
+                        chat_request.session_id = res.get_ref().session_id.to_string();
+                        thread::sleep(time::Duration::from_secs(3));
+                        Term::stdout().clear_screen().unwrap();
                     }
                 }
             } else {
-                // CHECK FOR AUTHENTICATION FIRST...
+                let input: String = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("> ")
+                    .interact_text()
+                    .unwrap();
+                println!("{}: {}", chat_request.session_id, input);
             }
         }
     }
