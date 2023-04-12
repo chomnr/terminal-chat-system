@@ -31,21 +31,21 @@ impl Auth for AuthService {
             Ok(session) => {
                 let mut response = self.build_response(
                     AuthStatus::Ok,
-                    AuthStage::Prerequisites,
+                    session.stage,
                     &session.session_id,
                     session.url,
                     session.code.clone(),
                 );
                 self.catch_stage(session.stage, AuthStage::Prerequisites, || {
-                    response.set_stage(AuthStage::Authorization);
                     response.code = Some(helper::gen_string(7));
+                    response.set_stage(AuthStage::Authorization);
                 });
                 self.catch_stage(session.stage, AuthStage::Authorization, || {
-                    response.set_stage(AuthStage::Completed);
+                    //response.set_stage(AuthStage::Authorization);
                     //response.code = Some(helper::gen_string(7));
                 });
                 self.catch_stage(session.stage, AuthStage::Completed, || {
-                    response.set_stage(AuthStage::Completed);
+                    //response.set_stage(AuthStage::Completed);
                 });
                 self.update_stage(
                     &session.session_id,
@@ -111,49 +111,3 @@ impl Auth for AuthService {
         todo!()
     }
 }
-
-
-        /*
-
-                    /*
-                self.catch_stage(session.stage, AuthStage::Stage1, || {
-                    response.set_stage(AuthStage::Stage2);
-                    response.code = Some(helper::gen_string(7));
-                });
-                self.catch_stage(session.stage, AuthStage::Stage2, || {
-                    response.set_stage(AuthStage::Stage3);
-                });
-                self.catch_stage(session.stage, AuthStage::Stage3, || {
-                    //response.set_stage(AuthStage::Stage3); // make Stage3 -> Completed //check if activated = true.
-                    response.set_status(AuthStatus::Pending);
-                });
-                self.catch_stage(session.stage, AuthStage::Completed, || {
-                    response.set_stage(AuthStage::Completed);
-                });
-                */
-        if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
-            let user_info = ChatUser {
-                uid: data.uid.to_string(),
-                username: data.username.to_string(),
-                discriminator: data.discriminator.to_string(),
-                session_id: data.session_id.to_string()
-            };
-            match self.verify_session(&data.session_id, &data.code, user_info).await {
-                Ok(_) => {
-                    println!("Finished Authentication for {}", data.session_id);
-                    return Ok(Response::new(AuthVerifyResponse {
-                        status: AuthStatus::Ok.into(),
-                    }));
-                },
-                Err(_) => {
-                    return Ok(Response::new(AuthVerifyResponse {
-                        status: AuthStatus::Denied.into(),
-                    }));
-                },
-            }
-        } else {
-            return Ok(Response::new(AuthVerifyResponse {
-                status: AuthStatus::Denied.into(),
-            }));
-        }
-        */
