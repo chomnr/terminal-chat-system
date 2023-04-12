@@ -2,11 +2,12 @@ use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
 use crate::{
+    chat::ChatUser,
     chatnexus_chat::{
         auth_server::Auth, AuthPresenseResponse, AuthRequest, AuthResponse, AuthStage, AuthStatus,
         AuthVerifyRequest, AuthVerifyResponse, Empty,
     },
-    helper::{self}, chat::ChatUser,
+    helper::{self},
 };
 
 use super::AuthService;
@@ -30,11 +31,20 @@ impl Auth for AuthService {
             Ok(session) => {
                 let mut response = self.build_response(
                     AuthStatus::Ok,
-                    AuthStage::Stage1,
+                    AuthStage::Prerequisites,
                     &session.session_id,
                     session.url,
-                    session.code,
+                    session.code.clone(),
                 );
+                self.catch_stage(session.stage, AuthStage::Prerequisites, || {
+                    response.set_stage(AuthStage::Authorization);
+                    response.code = Some(helper::gen_string(7));
+                });
+                self.catch_stage(session.stage, AuthStage::Authorization, || {
+                    //response.set_stage(AuthStage::Completed);
+                    //response.code = Some(helper::gen_string(7));
+                });
+                /*
                 self.catch_stage(session.stage, AuthStage::Stage1, || {
                     response.set_stage(AuthStage::Stage2);
                     response.code = Some(helper::gen_string(7));
@@ -43,32 +53,39 @@ impl Auth for AuthService {
                     response.set_stage(AuthStage::Stage3);
                 });
                 self.catch_stage(session.stage, AuthStage::Stage3, || {
-                    response.set_stage(AuthStage::Stage3); // make Stage3 -> Completed //check if activated = true.
+                    //response.set_stage(AuthStage::Stage3); // make Stage3 -> Completed //check if activated = true.
                     response.set_status(AuthStatus::Pending);
                 });
                 self.catch_stage(session.stage, AuthStage::Completed, || {
-                    println!("COMPLETED");
                     response.set_stage(AuthStage::Completed);
                 });
+                */
                 self.update_stage(
                     &session.session_id,
                     AuthStage::from_i32(response.stage.unwrap()).unwrap(),
                 )
                 .await
                 .unwrap();
-                self.update_code(&session.session_id, &response.code)
-                    .await
-                    .unwrap();
+                if session.stage != response.stage() {
+                    self.update_stage(&session.session_id, response.stage())
+                        .await
+                        .unwrap();
+                }
+                if session.code.is_none() {
+                    self.update_code(&session.session_id, &response.code)
+                        .await
+                        .unwrap();
+                }
                 return Ok(Response::new(response));
             }
             Err(_) => {
                 let newly_created = self
-                    .build_session(AuthStage::Stage1, None, None)
+                    .build_session(AuthStage::Prerequisites, None, None)
                     .await
                     .unwrap();
                 return Ok(Response::new(self.build_response(
                     AuthStatus::Ok,
-                    AuthStage::Stage1,
+                    AuthStage::Prerequisites,
                     &newly_created.session_id,
                     newly_created.url,
                     None,
@@ -85,7 +102,7 @@ impl Auth for AuthService {
         let future = self.get_session(&data.session_id).await;
         let response = match future {
             Ok(res) => self.build_response(AuthStatus::Ok, res.stage, &res.session_id, None, None),
-            Err(_) => self.build_response(AuthStatus::Denied, AuthStage::Stage1, "", None, None),
+            Err(_) => self.build_response(AuthStatus::Denied, AuthStage::Prerequisites, "", None, None),
         };
         Ok(Response::new(response))
     }
@@ -95,6 +112,16 @@ impl Auth for AuthService {
         request: tonic::Request<AuthVerifyRequest>,
     ) -> Result<Response<AuthVerifyResponse>, Status> {
         let data = request.get_ref();
+        if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
+            println!("Request {:?}", data);
+            let user_info = ChatUser {
+                uid: data.uid.to_string(),
+                username: data.username.to_string(),
+                discriminator: data.discriminator.to_string(),
+                session_id: data.session_id.to_string(),
+            };
+        }
+        /*
         if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
             let user_info = ChatUser {
                 uid: data.uid.to_string(),
@@ -120,6 +147,7 @@ impl Auth for AuthService {
                 status: AuthStatus::Denied.into(),
             }));
         }
+        */
         todo!()
     }
 }

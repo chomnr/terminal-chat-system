@@ -223,7 +223,7 @@ impl AuthService {
     pub async fn verify_session(&self, session_id: &str, code: &str, user_info: ChatUser) -> AuthResult<()> {
         let conn = &mut self.redis.get_async_connection().await.unwrap();
         match self.get_session(session_id).await {
-            Ok(mut val) => {
+            Ok(val) => {
                 if val.clone().code.unwrap().eq(code) {
                     let key = format!("chatter:{}", session_id).to_string();
                     let mut cloned_session = val.clone();

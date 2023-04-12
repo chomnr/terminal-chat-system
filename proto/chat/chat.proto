@@ -15,10 +15,9 @@ enum AuthStatus {
 }
 
 enum AuthStage {
-    STAGE_1 = 0; // Waiting for approval from the user...
-    STAGE_2 = 1; // Create session_id and token for the user & url.
-    STAGE_3 = 2; // Waiting to finish sign in page... through oauth2
-    COMPLETED = 3; // Authentication has finished...
+    PREREQUISITES = 0; // Create session_id and token for the user & url.
+    AUTHORIZATION = 1; // Waiting to finish sign in page... through oauth2
+    COMPLETED = 2; // Authentication has finished... 
 }
 
 service Auth {
