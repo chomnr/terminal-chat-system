@@ -81,7 +81,7 @@ service Chat {
 message Empty {} // Empty request
 
 message ChatRequest { // client request
-    string username = 1;
+    string session_id = 1;
     string message = 2;
 }
 

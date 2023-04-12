@@ -10,7 +10,7 @@ use tonic::{transport::Server, Request, Response, Status};
 #[tonic::async_trait]
 impl Chat for ChatService {
     async fn send_message(&self, request: Request<ChatRequest>) -> Result<Response<ChatResponse>, Status>  {
-        println!("{}: {}", &request.get_ref().username, &request.get_ref().message);
+        println!("{}: {}", &request.get_ref().session_id, &request.get_ref().message);
         let chat_response = ChatResponse {
             status: true
         };

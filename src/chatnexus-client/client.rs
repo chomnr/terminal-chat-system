@@ -1,6 +1,6 @@
 use std::{
     io::{self, stdin, stdout, Write},
-    time, thread,
+    thread, time,
 };
 
 use chatnexus_chat::{chat_client::ChatClient, AuthStage, AuthStatus};
@@ -38,27 +38,76 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let presence_result = notify_presence.get_ref();
     // Handle OAuth2 Authorization
     if presence_result.auth_type() == AuthType::OAuth2 {
-        let mut request = AuthRequest {
+        let mut auth_request = AuthRequest {
             session_id: String::default(),
         };
-        loop {
-            if request.clone().session_id.is_empty() {
-                let res = auth_client
-                    .promote_stage(request.clone())
-                    .await
-                    .unwrap();
-                request.session_id = res.get_ref().session_id.to_string();
-            } else {
-                let res = auth_client
-                    .promote_stage(request.clone())
-                    .await
-                    .unwrap();
+        let mut chat_request = ChatRequest {
+            session_id: String::default(),
+            message: String::default(),
+        };
 
-                if res.get_ref().stage() == AuthStage::Authorization {
-                    println!("AUTHORIZATION");
-                    thread::sleep(time::Duration::from_secs(3))
+        loop {
+            // check if chatter session exists...
+            if chat_request.session_id.is_empty() {
+                if auth_request.clone().session_id.is_empty() {
+                    println!(
+                        "Server Authorization Method: {:?}\n",
+                        AuthType::from_i32(presence_result.auth_type).unwrap()
+                    );
+                    if Confirm::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Begin Authorization?")
+                        .interact()
+                        .unwrap()
+                    {
+                        let res = auth_client.promote_stage(auth_request.clone()).await.unwrap();
+                        auth_request.session_id = res.get_ref().session_id.to_string();
+                    }
+                } else {
+                    let res = auth_client.promote_stage(auth_request.clone()).await.unwrap();
+
+                    if res.get_ref().stage() == AuthStage::Authorization {
+                        Term::stdout().clear_screen().unwrap();
+                        println!(
+                            "\n  {}",
+                            console::style("Waiting for Authentication...")
+                                .bold()
+                                .yellow()
+                                .bright()
+                        );
+                        println!(
+                            "\n  URL: {}",
+                            console::style(res.get_ref().url()).bold().yellow().bright()
+                        );
+                        println!(
+                            "\n  Session ID: {}",
+                            console::style(res.get_ref().session_id.to_string())
+                                .bold()
+                                .yellow()
+                                .bright()
+                        );
+                        println!(
+                            "\n  Code: {}",
+                            console::style(res.get_ref().code())
+                                .bold()
+                                .yellow()
+                                .bright()
+                        );
+                        thread::sleep(time::Duration::from_secs(10))
+                    }
+                    if res.get_ref().stage() == AuthStage::Completed {
+                        Term::stdout().clear_screen().unwrap();
+                        println!(
+                            "\n  {}",
+                            console::style("Authorization Approved.")
+                                .bold()
+                                .green()
+                                .bright()
+                        );
+                        thread::sleep(time::Duration::from_secs(3))
+                    }
                 }
-                if res.get_ref().stage() == AuthStage::Completed {}
+            } else {
+                // CHECK FOR AUTHENTICATION FIRST...
             }
         }
     }
