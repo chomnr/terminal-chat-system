@@ -241,8 +241,6 @@ impl AuthService {
             },
         }
     }
-    // check for verification
-    pub async fn is_session_verified(){}
 
     /// Creates an OAuth2 URL
     fn authorize_link() -> String {

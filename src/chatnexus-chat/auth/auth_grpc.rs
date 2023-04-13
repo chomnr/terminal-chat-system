@@ -39,13 +39,8 @@ impl Auth for AuthService {
                     response.code = Some(helper::gen_string(7));
                     response.set_stage(AuthStage::Authorization);
                 });
-                self.catch_stage(session.stage, AuthStage::Authorization, || {
-                    //response.set_stage(AuthStage::Authorization);
-                    //response.code = Some(helper::gen_string(7));
-                });
-                self.catch_stage(session.stage, AuthStage::Completed, || {
-                    //response.set_stage(AuthStage::Completed);
-                });
+                self.catch_stage(session.stage, AuthStage::Authorization, || {});
+                self.catch_stage(session.stage, AuthStage::Completed, || {});
                 if session.stage != response.stage() {
                     self.update_stage(&session.session_id, response.stage())
                         .await

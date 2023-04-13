@@ -4,6 +4,9 @@ option java_multiple_files = true;
 
 package chatnexus.chat;
 
+///
+/// Auth Service
+///
 enum AuthType {
     OAuth2 = 0;
 }
@@ -57,31 +60,18 @@ message AuthVerifyResponse {
     AuthStatus status = 1;
 }
 
-
-
-
-// end of Auth
-
-// Start of chat..
+///
+/// Chat Service
+///
 service Chat {
-    // Message Sending
-    rpc SendMessage (ChatRequest) returns (ChatResponse);
-    rpc RecieveMessage (Empty) returns (ChatRequest);
-    // Authentication
-    //rpc SendAuthMessage(Empty) returns (BarenResponse);
+    rpc SendMessage (ChatRequest) returns (stream ChatResponse);
+    rpc RecieveMessage (Empty) returns (stream ChatResponse);
 }
-
-// service Auth {
-    //rpc Authenticate
-    //rpc CurrentAuth
-    //rpc SendAuthUrl
-    //
-//}
 
 message Empty {} // Empty request
 
 message ChatRequest { // client request
-    string session_id = 1;
+    string session_id = 1; //
     string message = 2;
 }
 
