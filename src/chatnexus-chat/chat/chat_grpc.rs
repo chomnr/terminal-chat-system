@@ -14,7 +14,6 @@ type ChatResponseStream = Pin<Box<dyn Stream<Item = Result<ChatResponse, Status>
 impl Chat for ChatService {
     type SendMessageStream = ChatResponseStream;
     type RecieveMessageStream = ChatResponseStream;
-
     async fn send_message(
         &self,
         req: Request<ChatRequest>,
@@ -29,6 +28,9 @@ impl Chat for ChatService {
     ) -> ChatResult<Self::RecieveMessageStream> {
         todo!()
     }
+}
+
+
     /*
     async fn send_message(&self, request: Request<ChatRequest>) -> Result<Response<ChatResponse>, Status>  {
         println!("{}: {}", &request.get_ref().session_id, &request.get_ref().message);
@@ -43,4 +45,3 @@ impl Chat for ChatService {
         todo!()
     }
     */
-}
