@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     //let mut redis_conn = redis.get_async_connection().await.unwrap();
     // Services
-    let chat = ChatService::new(redis.clone());
+    let mut chat = ChatService::new(redis.clone());
     let auth = AuthService::new(AuthType::OAuth2, redis);
         
     let addr: SocketAddr = ADDRESS.parse().unwrap();

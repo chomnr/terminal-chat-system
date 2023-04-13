@@ -1,47 +1,45 @@
-use crate::chatnexus_chat::{chat_server::Chat, ChatRequest, ChatResponse, Empty};
+use crate::{chatnexus_chat::{chat_server::Chat, ChatRequest, ChatResponse, ChatFilter, self, Empty}, chat::UserMessage};
 
 use super::ChatService;
 
-use std::{net::{IpAddr, SocketAddr}, pin::Pin};
+use std::{error::Error, io::ErrorKind, net::ToSocketAddrs, pin::Pin, time::Duration};
 
-use tokio_stream::Stream;
-use tonic::{transport::Server, Request, Response, Status};
+use tokio::sync::mpsc;
+use tokio_stream::{wrappers::ReceiverStream, StreamExt, Stream};
+use tonic::{Request, Response, Status};
 
 type ChatResult<T> = Result<Response<T>, Status>;
 type ChatResponseStream = Pin<Box<dyn Stream<Item = Result<ChatResponse, Status>> + Send>>;
 
+// Stores messages with id..
+
+
 #[tonic::async_trait]
 impl Chat for ChatService {
-    type SendMessageStream = ChatResponseStream;
     type RecieveMessageStream = ChatResponseStream;
+
     async fn send_message(
         &self,
         req: Request<ChatRequest>,
-    ) -> ChatResult<Self::SendMessageStream> {
-        
-        todo!()
+    ) -> ChatResult<Empty> {
+        let data = req.get_ref();
+        match self.get_chat_session(&data.session_id).await {
+          /* Authorized */  Ok(val) => {
+                self.insert_into_messages(UserMessage { 
+                    username: val.username, 
+                    discriminator: val.discriminator, 
+                    message: data.message.clone() 
+                }).await;
+                Ok(Response::new(Empty{}))
+            },
+          /* Not Authorized */ Err(_) => return Ok(Response::new(Empty{})), 
+        }
     }
 
     async fn recieve_message(
         &self,
-        req: Request<Empty>,
+        req: Request<ChatFilter>,
     ) -> ChatResult<Self::RecieveMessageStream> {
         todo!()
     }
 }
-
-
-    /*
-    async fn send_message(&self, request: Request<ChatRequest>) -> Result<Response<ChatResponse>, Status>  {
-        println!("{}: {}", &request.get_ref().session_id, &request.get_ref().message);
-        let chat_response = ChatResponse {
-            status: true
-        };
-        Ok(Response::new(chat_response))
-    }
-    
-    async fn recieve_message(&self, request: Request<Empty>) -> Result<Response<ChatRequest>, Status>  {
-        println!("test");
-        todo!()
-    }
-    */

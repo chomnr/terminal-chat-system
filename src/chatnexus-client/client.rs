@@ -1,5 +1,6 @@
 use std::{
     io::{self, stdin, stdout, Write},
+    sync::Arc,
     thread, time,
 };
 
@@ -29,6 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Connecting to AuthService
     let mut auth_client = AuthClient::connect(address).await.unwrap();
     let mut chat_client = ChatClient::connect(address).await.unwrap();
+    let mut trick_repeat = false;
     // Client's Session ID
     let mut session_id = String::default();
     //let mut current_stage = AuthStage::Stage1;
@@ -42,7 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             session_id: String::default(),
         };
         let mut chat_request = ChatRequest {
-            session_id: String::default(),
+            session_id: session_id,
             message: String::default(),
         };
 
@@ -59,49 +61,62 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         .interact()
                         .unwrap()
                     {
-                        let res = auth_client.promote_stage(auth_request.clone()).await.unwrap();
+                        let res = auth_client
+                            .promote_stage(auth_request.clone())
+                            .await
+                            .unwrap();
                         auth_request.session_id = res.get_ref().session_id.to_string();
                     }
                 } else {
-                    let res = auth_client.promote_stage(auth_request.clone()).await.unwrap();
+                    let res = auth_client
+                        .promote_stage(auth_request.clone())
+                        .await
+                        .unwrap();
                     if res.get_ref().stage() == AuthStage::Authorization {
-                        Term::stdout().clear_screen().unwrap();
-                        println!(
-                            "\n  {}",
-                            console::style("Waiting for Authentication...")
-                                .bold()
-                                .yellow()
-                                .bright()
-                        );
-                        println!(
-                            "\n  URL: {}",
-                            console::style(res.get_ref().url()).bold().yellow().bright()
-                        );
-                        println!(
-                            "\n  Session ID: {}",
-                            console::style(res.get_ref().session_id.to_string())
-                                .bold()
-                                .yellow()
-                                .bright()
-                        );
-                        println!(
-                            "\n  Code: {}",
-                            console::style(res.get_ref().code())
-                                .bold()
-                                .yellow()
-                                .bright()
-                        );
-                        //thread::sleep(time::Duration::from_secs(10))
+                        if trick_repeat == false {
+                            Term::stdout().clear_screen().unwrap();
+                            println!(
+                                "\n  {}",
+                                console::style("Waiting for Authentication...")
+                                    .bold()
+                                    .yellow()
+                                    .bright()
+                            );
+                            println!(
+                                "\n  URL: {}",
+                                console::style(res.get_ref().url()).bold().yellow().bright()
+                            );
+                            println!(
+                                "\n  Session ID: {}",
+                                console::style(res.get_ref().session_id.to_string())
+                                    .bold()
+                                    .yellow()
+                                    .bright()
+                            );
+                            println!(
+                                "\n  Code: {}",
+                                console::style(res.get_ref().code())
+                                    .bold()
+                                    .yellow()
+                                    .bright()
+                            );
+                            trick_repeat = true;
+                            //thread::sleep(time::Duration::from_secs(10))
+                        }
                     }
                     if res.get_ref().stage() == AuthStage::Completed {
-                        Term::stdout().clear_screen().unwrap();
-                        println!(
-                            "\n  {}",
-                            console::style("Authorization Approved.")
-                                .bold()
-                                .green()
-                                .bright()
-                        );
+                        if trick_repeat == true {
+                            Term::stdout().clear_screen().unwrap();
+
+                            println!(
+                                "\n  {}",
+                                console::style("Authorization Approved.")
+                                    .bold()
+                                    .green()
+                                    .bright()
+                            );
+                            trick_repeat = false
+                        }
                         chat_request.session_id = res.get_ref().session_id.to_string();
                         thread::sleep(time::Duration::from_secs(3));
                         Term::stdout().clear_screen().unwrap();

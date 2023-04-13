@@ -64,8 +64,8 @@ message AuthVerifyResponse {
 /// Chat Service
 ///
 service Chat {
-    rpc SendMessage (ChatRequest) returns (stream ChatResponse);
-    rpc RecieveMessage (Empty) returns (stream ChatResponse);
+    rpc SendMessage (ChatRequest) returns (Empty);
+    rpc RecieveMessage (ChatFilter) returns (stream ChatResponse);
 }
 
 message Empty {} // Empty request
@@ -75,8 +75,16 @@ message ChatRequest { // client request
     string message = 2;
 }
 
+message ChatFilter {
+    string session_id = 1;
+    int64 at_message = 2;
+}
+
 message ChatResponse { // client response
-    bool Status = 1;
+    string username = 1;
+    string discriminator = 2;
+    string message = 3;
+    string at_message = 4;
 }
 
 message BarenResponse {
