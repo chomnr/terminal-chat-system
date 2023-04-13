@@ -6,7 +6,7 @@ use serde::{Serialize, Deserialize};
 use serde_json::{json, Value};
 use tonic::transport::Channel;
 
-use crate::chatnexus_chat::{AuthRequest, AuthVerifyRequest};
+use crate::chatnexus_chat::{AuthRequest, AuthVerifyRequest, AuthStatus};
 use crate::oauth2::DiscordUser;
 use crate::{oauth2::OAuth2, chatnexus_chat::auth_client::AuthClient};
 
@@ -51,13 +51,13 @@ async fn identity_check(identity: Json<IdentityCheck>, auth: &State<Mutex<AuthCl
             username: discord_user.username().to_string(),
             discriminator: discord_user.discriminator().to_string(),
         };
-        auth.lock().await.verify_user(request).await.unwrap();
+        let status = auth.lock().await.verify_user(request).await.unwrap();
         return json!({
-            "message": "success!"
+            "status": status.get_ref().status()
         })
     }
     return json!({
-        "message": "failure!"
+        "status": AuthStatus::Denied
     })
 }
 

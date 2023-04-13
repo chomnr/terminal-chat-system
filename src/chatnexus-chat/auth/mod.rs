@@ -227,11 +227,18 @@ impl AuthService {
                 if val.clone().code.unwrap().eq(code) {
                     let key = format!("chat-session:{}", session_id).to_string();
                     self.update_stage(session_id, AuthStage::Completed).await.unwrap();
-                    conn.set(key, serde_json::to_string(&user_info).unwrap()).await.unwrap()
+                    let _: String = conn.set(key, serde_json::to_string(&user_info).unwrap()).await.unwrap();
+                    helper::system_print(&format!("Succesfully verified '{}'", session_id).to_string());
+                    Ok(())
+                } else {
+                    helper::system_print(&format!("Failed to verify '{}'", session_id).to_string());
+                    return Err(AuthError::SessionValidationFailed(session_id.to_string()))
                 }
-                return Err(AuthError::SessionValidationFailed(session_id.to_string()))
             },
-            Err(_) => Err(AuthError::SessionNotFound(session_id.to_string())),
+            Err(_) => {
+                helper::system_print(&format!("Failed to verify '{}'", session_id).to_string());
+                return Err(AuthError::SessionNotFound(session_id.to_string()))
+            },
         }
     }
     // check for verification

@@ -64,7 +64,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 } else {
                     let res = auth_client.promote_stage(auth_request.clone()).await.unwrap();
-
                     if res.get_ref().stage() == AuthStage::Authorization {
                         Term::stdout().clear_screen().unwrap();
                         println!(

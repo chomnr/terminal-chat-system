@@ -1,4 +1,3 @@
-use dialoguer::console::Term;
 use tonic::{Request, Response, Status};
 
 use crate::{
@@ -39,19 +38,15 @@ impl Auth for AuthService {
                 self.catch_stage(session.stage, AuthStage::Prerequisites, || {
                     response.code = Some(helper::gen_string(7));
                     response.set_stage(AuthStage::Authorization);
-                    println!("test")
                 });
                 self.catch_stage(session.stage, AuthStage::Authorization, || {
                     //response.set_stage(AuthStage::Authorization);
                     //response.code = Some(helper::gen_string(7));
-                    println!("test2")
                 });
                 self.catch_stage(session.stage, AuthStage::Completed, || {
-                    response.set_stage(AuthStage::Completed);
-                    println!("test3")
+                    //response.set_stage(AuthStage::Completed);
                 });
                 if session.stage != response.stage() {
-                    println!("test");
                     self.update_stage(&session.session_id, response.stage())
                         .await
                         .unwrap();
@@ -98,14 +93,24 @@ impl Auth for AuthService {
     ) -> Result<Response<AuthVerifyResponse>, Status> {
         let data = request.get_ref();
         if data.secret_key.eq(&dotenv::var("WEB_SECRET_KEY").unwrap()) {
-            println!("Request {:?}", data);
+           // println!("Request {:?}", data);
             let user_info = ChatUser {
                 uid: data.uid.to_string(),
                 username: data.username.to_string(),
                 discriminator: data.discriminator.to_string(),
                 session_id: data.session_id.to_string(),
             };
+            match self.verify_session(&data.session_id, &data.code, user_info).await {
+                Ok(_) => {
+                    helper::system_print(&format!("Succesfully verified '{}'", &data.session_id).to_string());
+                    return Ok(Response::new(AuthVerifyResponse { status: AuthStatus::Ok.into() }));
+                },
+                Err(_) => {
+                    helper::system_print(&format!("Failed to verify '{}'", &data.session_id).to_string());
+                    return Ok(Response::new(AuthVerifyResponse { status: AuthStatus::Denied.into() }));
+                },
+            }
         }
-        todo!()
+        Ok(Response::new(AuthVerifyResponse { status: AuthStatus::Denied.into() }))
     }
 }
