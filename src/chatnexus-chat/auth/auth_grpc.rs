@@ -39,21 +39,19 @@ impl Auth for AuthService {
                 self.catch_stage(session.stage, AuthStage::Prerequisites, || {
                     response.code = Some(helper::gen_string(7));
                     response.set_stage(AuthStage::Authorization);
+                    println!("test")
                 });
                 self.catch_stage(session.stage, AuthStage::Authorization, || {
                     //response.set_stage(AuthStage::Authorization);
                     //response.code = Some(helper::gen_string(7));
+                    println!("test2")
                 });
                 self.catch_stage(session.stage, AuthStage::Completed, || {
-                    //response.set_stage(AuthStage::Completed);
+                    response.set_stage(AuthStage::Completed);
+                    println!("test3")
                 });
-                self.update_stage(
-                    &session.session_id,
-                    AuthStage::from_i32(response.stage.unwrap()).unwrap(),
-                )
-                .await
-                .unwrap();
                 if session.stage != response.stage() {
+                    println!("test");
                     self.update_stage(&session.session_id, response.stage())
                         .await
                         .unwrap();
