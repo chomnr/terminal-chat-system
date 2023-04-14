@@ -7,7 +7,6 @@ use crate::chatnexus_chat::{AuthStage, AuthType, AuthResponse, AuthStatus};
 use crate::chatnexus_chat::auth_server::AuthServer;
 use crate::helper;
 
-use mongodb::change_stream::session;
 use redis::{AsyncCommands, RedisResult};
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;

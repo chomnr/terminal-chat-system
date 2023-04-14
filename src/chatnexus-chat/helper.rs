@@ -16,5 +16,5 @@ pub fn gen_string(len: usize) -> String {
 }
 
 pub fn gen_uuid() -> String {
-    uuid::Uuid::new_v4().simple().to_string()
+    uuid::Uuid::new_v4().as_simple().to_string()
 }

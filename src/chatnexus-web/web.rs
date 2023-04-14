@@ -1,7 +1,6 @@
 use std::fmt::format;
 
 use chatnexus_chat::auth_client::AuthClient;
-use mongodb::options::ClientOptions;
 use rocket::futures::lock::Mutex;
 use routes::routes;
 
