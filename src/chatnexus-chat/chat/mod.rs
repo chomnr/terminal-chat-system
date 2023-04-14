@@ -1,17 +1,24 @@
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
+use std::pin::Pin;
+use std::sync::Arc;
+
+use tokio_stream::Stream;
+use tokio::sync::{mpsc, RwLock, futures};
+use tonic::transport::Server;
+use tonic::{Request, Response, Status, Streaming};
 
 use redis::AsyncCommands;
-use rocket::futures::lock::Mutex;
 use serde::{Serialize, Deserialize};
 
-use crate::chatnexus_chat::chat_server::ChatServer;
+use crate::chatnexus_chat::ChatResponse;
+use crate::chatnexus_chat::{chat_server::ChatServer, ChatRequest};
 
 use self::error::{ChatError, ChatResult};
 
 mod chat_grpc;
 mod error;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct ChatUser {
     pub uid: String,
     pub username: String,
@@ -19,18 +26,18 @@ pub struct ChatUser {
     pub session_id: String
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct UserMessage {
     pub username: String,
     pub discriminator: String,
     pub message: String
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ChatService {
     pub service: Option<ChatServer<Self>>,
     pub redis: redis::Client,
-    pub messages: Arc<Mutex<HashMap<usize, UserMessage>>>
+    pub senders: Arc<RwLock<HashMap<String, mpsc::Sender<ChatResponse>>>>,
 }
 
 impl ChatService {
@@ -38,11 +45,12 @@ impl ChatService {
         let mut chat_service = Self {
             service: None,
             redis: redis_cli,
-            messages: Arc::new(Mutex::new(HashMap::new()))
+            senders: Arc::new(RwLock::new(HashMap::new()))
         };
         chat_service.service = Some(ChatServer::new(chat_service.clone()));
         chat_service
     }
+
     /// Looks for the user's chat session id inside redis if
     /// found returns [ChatUser], if not returns [ChatError].
     ///
@@ -61,10 +69,16 @@ impl ChatService {
         Ok(serde_json::from_str(&session).unwrap())
     }
 
-    // test
-    pub async fn insert_into_messages(&self, message: UserMessage) {
-        let id = self.messages.lock().await.len();
-        self.messages.lock().await.insert(id, message).unwrap();
+    pub async fn broadcast(&self, msg: ChatResponse) {
+        let senders = self.senders.read().await;
+        for (name, tx) in senders.iter() {
+            match tx.send(msg.clone()).await {
+                Ok(_) => {}
+                Err(_) => {
+                    println!("[Broadcast] SendError: to {}, {:?}", name, msg)
+                }
+            }
+        }
     }
     
     pub fn service(self) -> ChatServer<ChatService> {

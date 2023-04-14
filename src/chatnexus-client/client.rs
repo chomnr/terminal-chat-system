@@ -1,21 +1,14 @@
 use std::{
-    io::{self, stdin, stdout, Write},
-    sync::Arc,
+    io::{self, Write, BufRead},
     thread, time,
 };
 
 use chatnexus_chat::{chat_client::ChatClient, AuthStage, AuthStatus};
-use dialoguer::{
-    console::Term,
-    theme::{self, ColorfulTheme, SimpleTheme},
-    Confirm, Input,
-};
-use oauth2::{
-    helpers,
-    http::{request, Request},
-};
+use dialoguer::{console::Term, theme::ColorfulTheme, Confirm, Input};
 
-use crate::chatnexus_chat::{auth_client::AuthClient, AuthRequest, AuthType, ChatRequest, Empty};
+use crate::chatnexus_chat::{
+    auth_client::AuthClient, AuthRequest, AuthType, ChatFilter, ChatRequest, Empty,
+};
 
 pub mod chatnexus_chat {
     tonic::include_proto!("chatnexus.chat");
@@ -29,10 +22,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let address = "http://[::1]:50051";
     // Connecting to AuthService
     let mut auth_client = AuthClient::connect(address).await.unwrap();
+    // Connecting to ChatService
     let mut chat_client = ChatClient::connect(address).await.unwrap();
-    let mut trick_repeat = false;
     // Client's Session ID
     let mut session_id = String::default();
+    let mut trick_repeat = false;
+    let mut at_message = 0;
     //let mut current_stage = AuthStage::Stage1;
     //let mut waiting = false;
     // Notifying server of Client's presence.
@@ -43,96 +38,257 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         let mut auth_request = AuthRequest {
             session_id: String::default(),
         };
+
         let mut chat_request = ChatRequest {
-            session_id: session_id,
+            session_id: String::default(),
             message: String::default(),
         };
+        println!(
+            "Server Authorization Method: {:?}\n",
+            AuthType::from_i32(presence_result.auth_type).unwrap()
+        );
+        if Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Begin Authorization?")
+            .interact()
+            .unwrap()
+        {
+            let res = auth_client
+                .promote_stage(auth_request.clone())
+                .await
+                .unwrap();
+            auth_request.session_id = res.get_ref().session_id.to_string();
+        }
 
-        loop {
-            // check if chatter session exists...
-            if chat_request.session_id.is_empty() {
-                if auth_request.clone().session_id.is_empty() {
-                    println!(
-                        "Server Authorization Method: {:?}\n",
-                        AuthType::from_i32(presence_result.auth_type).unwrap()
-                    );
-                    if Confirm::with_theme(&ColorfulTheme::default())
-                        .with_prompt("Begin Authorization?")
-                        .interact()
-                        .unwrap()
-                    {
-                        let res = auth_client
-                            .promote_stage(auth_request.clone())
-                            .await
-                            .unwrap();
-                        auth_request.session_id = res.get_ref().session_id.to_string();
-                    }
-                } else {
-                    let res = auth_client
-                        .promote_stage(auth_request.clone())
-                        .await
-                        .unwrap();
-                    if res.get_ref().stage() == AuthStage::Authorization {
-                        if trick_repeat == false {
-                            Term::stdout().clear_screen().unwrap();
-                            println!(
-                                "\n  {}",
-                                console::style("Waiting for Authentication...")
-                                    .bold()
-                                    .yellow()
-                                    .bright()
-                            );
-                            println!(
-                                "\n  URL: {}",
-                                console::style(res.get_ref().url()).bold().yellow().bright()
-                            );
-                            println!(
-                                "\n  Session ID: {}",
-                                console::style(res.get_ref().session_id.to_string())
-                                    .bold()
-                                    .yellow()
-                                    .bright()
-                            );
-                            println!(
-                                "\n  Code: {}",
-                                console::style(res.get_ref().code())
-                                    .bold()
-                                    .yellow()
-                                    .bright()
-                            );
-                            trick_repeat = true;
-                            //thread::sleep(time::Duration::from_secs(10))
-                        }
-                    }
-                    if res.get_ref().stage() == AuthStage::Completed {
-                        if trick_repeat == true {
-                            Term::stdout().clear_screen().unwrap();
+        while chat_request.session_id.is_empty() {
+            if !auth_request.session_id.is_empty() {
+                let res = auth_client
+                    .promote_stage(auth_request.clone())
+                    .await
+                    .unwrap();
+                let data = res.get_ref();
 
-                            println!(
-                                "\n  {}",
-                                console::style("Authorization Approved.")
-                                    .bold()
-                                    .green()
-                                    .bright()
-                            );
-                            trick_repeat = false
-                        }
-                        chat_request.session_id = res.get_ref().session_id.to_string();
-                        thread::sleep(time::Duration::from_secs(3));
+                if data.stage() == AuthStage::Authorization {
+                    if trick_repeat == false {
+                        Term::stdout().clear_screen().unwrap();
+                        println!(
+                            "\n  {}",
+                            console::style("Waiting for Authentication...")
+                                .bold()
+                                .yellow()
+                                .bright()
+                        );
+                        println!(
+                            "\n  URL: {}",
+                            console::style(res.get_ref().url()).bold().yellow().bright()
+                        );
+                        println!(
+                            "\n  Session ID: {}",
+                            console::style(res.get_ref().session_id.to_string())
+                                .bold()
+                                .yellow()
+                                .bright()
+                        );
+                        println!(
+                            "\n  Code: {}",
+                            console::style(res.get_ref().code())
+                                .bold()
+                                .yellow()
+                                .bright()
+                        );
+                        trick_repeat = true;
+                    }
+                }
+                if data.stage() == AuthStage::Completed {
+                    if trick_repeat == true {
+                        Term::stdout().clear_screen().unwrap();
+
+                        println!(
+                            "\n  {}",
+                            console::style("Authorization Approved.")
+                                .bold()
+                                .green()
+                                .bright()
+                        );
+                        thread::sleep(time::Duration::from_secs(2));
+                        chat_request.session_id = data.session_id.to_string();
+                        trick_repeat = false;
                         Term::stdout().clear_screen().unwrap();
                     }
                 }
-            } else {
-                let input: String = Input::with_theme(&ColorfulTheme::default())
-                    .with_prompt("> ")
-                    .interact_text()
-                    .unwrap();
-                println!("{}: {}", chat_request.session_id, input);
             }
+        }
+
+        if !chat_request.session_id.is_empty() {
+            let mut response_stream = chat_client
+                .recieve_message(ChatFilter {
+                    session_id: chat_request.session_id.to_string(),
+                })
+                .await?
+                .into_inner();
+
+                tokio::spawn(async move {
+                    loop {
+                        match response_stream.message().await {
+                            Ok(v) => {
+                                if v.is_some() {
+                                    let user = v.unwrap();
+                                    println!("{}#{}: {}", user.username, user.discriminator, user.message);
+                                }
+                            }
+                            Err(_) => {}
+                        }
+                    }
+                });
+                
+                loop {
+                    print!(">> "); 
+                    std::io::stdout().flush().unwrap();
+                    let mut string: String = String::new();
+                    std::io::stdin().read_line(&mut string).unwrap();
+                    chat_client.send_message(ChatRequest {
+                        session_id: chat_request.session_id.to_string(),
+                        message: string
+                    }).await.unwrap();
+                }
+
+
         }
     }
     Ok(())
 }
+
+/*
+   loop {
+                    let stream = response_stream.message().await {
+                        let sent_user = stream.unwrap();
+
+                match sent_user {
+                    Some(v) => {
+                        println!("{}#{}: {}", v.username, v.discriminator, v.message);
+                    }
+                    None => {}
+                }
+                    }
+                }
+
+
+/*
+            while let stream = response_stream.message().await {
+                let sent_user = stream.unwrap();
+
+                match sent_user {
+                    Some(v) => {
+                        println!("{}#{}: {}", v.username, v.discriminator, v.message);
+                    }
+                    None => {}
+                }
+            }
+            */
+let mut auth_request = AuthRequest {
+    session_id: String::default(),
+};
+let mut chat_request = ChatRequest {
+    session_id: session_id,
+    message: String::default(),
+};
+*/
+
+/*
+    // check if chatter session exists...
+    if chat_request.clone().session_id.is_empty() {
+        if auth_request.clone().session_id.is_empty() {
+            println!(
+                "Server Authorization Method: {:?}\n",
+                AuthType::from_i32(presence_result.auth_type).unwrap()
+            );
+            if Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt("Begin Authorization?")
+                .interact()
+                .unwrap()
+            {
+                let res = auth_client
+                    .promote_stage(auth_request.clone())
+                    .await
+                    .unwrap();
+                auth_request.session_id = res.get_ref().session_id.to_string();
+            }
+        } else {
+            let res = auth_client
+                .promote_stage(auth_request.clone())
+                .await
+                .unwrap();
+            if res.get_ref().stage() == AuthStage::Authorization {
+                if trick_repeat == false {
+                    Term::stdout().clear_screen().unwrap();
+                    println!(
+                        "\n  {}",
+                        console::style("Waiting for Authentication...")
+                            .bold()
+                            .yellow()
+                            .bright()
+                    );
+                    println!(
+                        "\n  URL: {}",
+                        console::style(res.get_ref().url()).bold().yellow().bright()
+                    );
+                    println!(
+                        "\n  Session ID: {}",
+                        console::style(res.get_ref().session_id.to_string())
+                            .bold()
+                            .yellow()
+                            .bright()
+                    );
+                    println!(
+                        "\n  Code: {}",
+                        console::style(res.get_ref().code())
+                            .bold()
+                            .yellow()
+                            .bright()
+                    );
+                    trick_repeat = true;
+                }
+            }
+            if res.get_ref().stage() == AuthStage::Completed {
+                if trick_repeat == true {
+                 Term::stdout().clear_screen().unwrap();
+
+                    println!(
+                        "\n  {}",
+                        console::style("Authorization Approved.")
+                            .bold()
+                            .green()
+                            .bright()
+                    );
+                    trick_repeat = false
+                }
+                chat_request.session_id = res.get_ref().session_id.to_string();
+                thread::sleep(time::Duration::from_secs(1));
+                Term::stdout().clear_screen().unwrap();
+            }
+        }
+    } else {
+        let mut movable_chat_client = chat_client.clone();
+        let mut movable_session_id = chat_request.session_id.to_string();
+        let mut movable_at_message = at_message.clone();
+
+        tokio::spawn( async move {
+            let response = movable_chat_client.recieve_message(ChatFilter {
+                session_id: movable_session_id,
+                at_message: movable_at_message
+            }).await.unwrap();
+            let data = response.get_ref();
+            at_message = data.at_message;
+            println!("{}#{}: {}", data.username, data.discriminator, data.message)
+        });
+        let input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("> ")
+            .interact_text()
+            .unwrap();
+        chat_request.message = input.to_string();
+        chat_client.send_message(chat_request.clone()).await.unwrap();
+    }
+}
+*/
 
 // check if is authenticated if it is create a separate loop.. that handles just the chatclient requests
 /*
