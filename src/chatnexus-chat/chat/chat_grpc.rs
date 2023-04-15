@@ -1,14 +1,14 @@
 use crate::{
-    chatnexus_chat::{self, chat_server::Chat, ChatFilter, ChatRequest, ChatResponse, Empty},
+    chatnexus_chat::{chat_server::Chat, ChatFilter, ChatRequest, ChatResponse, Empty},
 };
 
 use super::ChatService;
 
-use std::{error::Error, io::ErrorKind, net::ToSocketAddrs, pin::Pin, time::Duration};
+use std::{pin::Pin};
 
 use tokio::sync::mpsc;
-use tokio_stream::{wrappers::ReceiverStream, Stream, StreamExt};
-use tonic::{IntoStreamingRequest, Request, Response, Status};
+use tokio_stream::{ Stream};
+use tonic::{ Request, Response, Status};
 
 type ChatResult<T> = Result<Response<T>, Status>;
 type ChatResponseStream = Pin<Box<dyn Stream<Item = Result<ChatResponse, Status>> + Send>>;
@@ -59,24 +59,3 @@ impl Chat for ChatService {
         )))
     }
 }
-
-
-      /* 
-        match self.get_chat_session(&data.session_id).await {
-            
-            /* Authorized */
-            Ok(val) => {
-                println!("Sent: {:?}", data);
-                self.insert_into_messages(UserMessage {
-                    username: val.username,
-                    discriminator: val.discriminator,
-                    message: data.message.clone(),
-                })
-                .await;
-                println!("Sent Message");
-                Ok(Response::new(Empty {}))
-            }
-            
-         Err(_) => return Ok(Response::new(Empty {})),
-        }
-        */

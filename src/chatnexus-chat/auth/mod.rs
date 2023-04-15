@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-use std::{collections::HashMap, sync::Mutex};
 
 use crate::auth::error::AuthError;
 use crate::chat::ChatUser;
@@ -7,7 +5,7 @@ use crate::chatnexus_chat::{AuthStage, AuthType, AuthResponse, AuthStatus};
 use crate::chatnexus_chat::auth_server::AuthServer;
 use crate::helper;
 
-use redis::{AsyncCommands, RedisResult};
+use redis::{AsyncCommands};
 use serde::{Deserialize, Serialize};
 use urlencoding::encode;
 

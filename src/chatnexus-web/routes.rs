@@ -16,6 +16,7 @@ pub struct IdentityCheck {
     code: String
 }
 
+
 #[get("/?<code>")]
 async fn index(code: String, oauth2: &State<OAuth2>, jar: &CookieJar<'_>) -> Result<Redirect, Value> {
     let result = oauth2.exchange_auth_code(code).await;

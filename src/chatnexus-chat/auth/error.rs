@@ -1,4 +1,4 @@
-use std::{fmt, cmp::min, any::Any};
+use std::{fmt};
 
 
 pub type AuthResult<T> = Result<T, AuthError>;

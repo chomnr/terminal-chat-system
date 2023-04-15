@@ -1,10 +1,6 @@
-use std::fmt::format;
-use std::net::{IpAddr, SocketAddr};
+use std::net::{SocketAddr};
 
-use dotenv::dotenv;
-use redis::AsyncCommands;
-use tonic::transport::Channel;
-use tonic::{transport::Server, Request, Response, Status};
+use tonic::{transport::Server};
 use crate::auth::AuthService;
 use crate::chat::ChatService;
 use crate::chatnexus_chat::AuthType;
@@ -18,7 +14,7 @@ pub mod chatnexus_chat {
 }
 
 /// Information about the gRPC.
-const SERVER_NAME: &str = "Test Chat Server Name";
+//const SERVER_NAME: &str = "Test Chat Server Name";
 const ADDRESS: &str = "[::1]:50051";
 
 #[tokio::main]
