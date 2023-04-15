@@ -71,7 +71,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if data.stage().eq(&AuthStage::Authorization) {
                     if print_text == false {
                         Term::stdout().clear_screen().unwrap();
-                        println!("\n    Waiting for Authentication.");
+                        println!("{}", style("\n    Waiting for Authentication.").yellow().bright());
                         println!("\n    Url: {}", data.url());
                         println!("\n    Session: {}", data.session_id);
                         println!("\n    Code: {}", data.code());
@@ -81,9 +81,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 if data.stage().eq(&AuthStage::Completed) {
                     if print_text == true {
                         Term::stdout().clear_screen().unwrap();
-                        println!("\n    Authentication Successful.");
+                        println!("{}", style("\n    Authentication Successful.").green().bright());
                         print_text = false;
                         chat_request.session_id = data.session_id.to_string();
+                        std::thread::sleep(Duration::from_secs(1));
                     }
                 }
             }
