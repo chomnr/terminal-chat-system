@@ -1,14 +1,30 @@
 use std::{
-    io::{self, Write, BufRead},
-    thread, time,
+    collections::HashMap,
+    fs::read,
+    io::{self, stdout, LineWriter, Write},
+    process::Command,
+    sync::Arc,
+    thread,
+    time::{self, Duration},
 };
 
-use chatnexus_chat::{chat_client::ChatClient, AuthStage, AuthStatus};
-use dialoguer::{console::Term, theme::ColorfulTheme, Confirm, Input};
+use rand::Rng;
 
 use crate::chatnexus_chat::{
     auth_client::AuthClient, AuthRequest, AuthType, ChatFilter, ChatRequest, Empty,
 };
+use chatnexus_chat::{chat_client::ChatClient, AuthStage, AuthStatus, ChatResponse};
+use dialoguer::{
+    console::{style, Term},
+    theme::{ColorfulTheme, SimpleTheme},
+    Confirm, Editor, Input,
+};
+use rand::thread_rng;
+use std::error::Error;
+use tokio::sync::mpsc;
+
+use std::sync::Mutex;
+use unicode_width::UnicodeWidthStr;
 
 pub mod chatnexus_chat {
     tonic::include_proto!("chatnexus.chat");
@@ -16,36 +32,32 @@ pub mod chatnexus_chat {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Enable colors...
-    console::set_colors_enabled(true);
     // Address of the server we would like to connect to.
     let address = "http://[::1]:50051";
-    // Connecting to AuthService
+    // Connecting to AuthService.
     let mut auth_client = AuthClient::connect(address).await.unwrap();
-    // Connecting to ChatService
+    // Connecting to ChatService.
     let mut chat_client = ChatClient::connect(address).await.unwrap();
-    // Client's Session ID
-    let mut session_id = String::default();
-    let mut trick_repeat = false;
-    let mut at_message = 0;
-    //let mut current_stage = AuthStage::Stage1;
-    //let mut waiting = false;
-    // Notifying server of Client's presence.
+    // Prevents repeating text.
+    let mut print_text = false;
+    // Chat Storage
+    let chat_storage: Arc<Mutex<Vec<ChatResponse>>> = Arc::new(Mutex::new(Vec::new()));
+    // gRPC NotifyPresence request.
     let notify_presence = auth_client.notify_presence(Empty::default()).await?;
     let presence_result = notify_presence.get_ref();
-    // Handle OAuth2 Authorization
+    // Empty Requests.
+    let mut auth_request = AuthRequest {
+        session_id: String::default(),
+    };
+    let mut chat_request = ChatRequest {
+        session_id: String::default(),
+        message: String::default(),
+    };
+    // Chat Window
     if presence_result.auth_type() == AuthType::OAuth2 {
-        let mut auth_request = AuthRequest {
-            session_id: String::default(),
-        };
-
-        let mut chat_request = ChatRequest {
-            session_id: String::default(),
-            message: String::default(),
-        };
         println!(
-            "Server Authorization Method: {:?}\n",
-            AuthType::from_i32(presence_result.auth_type).unwrap()
+            "Authorization Method: {}\n",
+            presence_result.auth_type().as_str_name()
         );
         if Confirm::with_theme(&ColorfulTheme::default())
             .with_prompt("Begin Authorization?")
@@ -58,297 +70,397 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .unwrap();
             auth_request.session_id = res.get_ref().session_id.to_string();
         }
-
-        while chat_request.session_id.is_empty() {
-            if !auth_request.session_id.is_empty() {
+        loop {
+            std::thread::sleep(Duration::from_secs(2));
+            if !auth_request.session_id.is_empty() && chat_request.session_id.is_empty() {
                 let res = auth_client
                     .promote_stage(auth_request.clone())
                     .await
                     .unwrap();
                 let data = res.get_ref();
 
-                if data.stage() == AuthStage::Authorization {
-                    if trick_repeat == false {
+                if data.stage().eq(&AuthStage::Authorization) {
+                    if print_text == false {
                         Term::stdout().clear_screen().unwrap();
-                        println!(
-                            "\n  {}",
-                            console::style("Waiting for Authentication...")
-                                .bold()
-                                .yellow()
-                                .bright()
-                        );
-                        println!(
-                            "\n  URL: {}",
-                            console::style(res.get_ref().url()).bold().yellow().bright()
-                        );
-                        println!(
-                            "\n  Session ID: {}",
-                            console::style(res.get_ref().session_id.to_string())
-                                .bold()
-                                .yellow()
-                                .bright()
-                        );
-                        println!(
-                            "\n  Code: {}",
-                            console::style(res.get_ref().code())
-                                .bold()
-                                .yellow()
-                                .bright()
-                        );
-                        trick_repeat = true;
+                        println!("\n    Waiting for Authentication.");
+                        println!("\n    Url: {}", data.url());
+                        println!("\n    Session: {}", data.session_id);
+                        println!("\n    Code: {}", data.code());
+                        print_text = true;
                     }
                 }
-                if data.stage() == AuthStage::Completed {
-                    if trick_repeat == true {
+                if data.stage().eq(&AuthStage::Completed) {
+                    if print_text == true {
                         Term::stdout().clear_screen().unwrap();
-
-                        println!(
-                            "\n  {}",
-                            console::style("Authorization Approved.")
-                                .bold()
-                                .green()
-                                .bright()
-                        );
-                        thread::sleep(time::Duration::from_secs(2));
+                        println!("\n    Authentication Successful.");
+                        print_text = false;
                         chat_request.session_id = data.session_id.to_string();
-                        trick_repeat = false;
-                        Term::stdout().clear_screen().unwrap();
                     }
                 }
             }
-        }
+            if !chat_request.session_id.is_empty() {
+                if print_text == false {
+                    Term::stdout().clear_screen().unwrap();
+                    println!("You're currently connected to {}", address);
+                    print_text = true;
+                }
+                let mut r_stream = chat_client
+                    .recieve_message(ChatFilter {
+                        session_id: chat_request.session_id.to_string(),
+                    })
+                    .await?
+                    .into_inner();
 
-        if !chat_request.session_id.is_empty() {
-            let mut response_stream = chat_client
-                .recieve_message(ChatFilter {
-                    session_id: chat_request.session_id.to_string(),
-                })
-                .await?
-                .into_inner();
-
+                let chat_storage_clone = chat_storage.clone();
                 tokio::spawn(async move {
                     loop {
-                        match response_stream.message().await {
+                        match r_stream.message().await {
                             Ok(v) => {
                                 if v.is_some() {
-                                    let user = v.unwrap();
-                                    println!("{}#{}: {}", user.username, user.discriminator, user.message);
+                                    let user = v.clone().unwrap();
+                                    chat_storage_clone.lock().unwrap().push(user);
+                                    let len = chat_storage_clone.lock().unwrap().len();
+                                    let search = chat_storage_clone.lock().unwrap();
+                                    Term::stdout().clear_screen().unwrap();
+                                    for i in 0..len {
+                                        println!(
+                                            "{}#{}: {}",
+                                            style(search[i].username.to_string()).blue().bright(),
+                                            style(search[i].discriminator.to_string())
+                                                .red()
+                                                .bright(),
+                                            style(search[i].message.to_string()).white()
+                                        )
+                                    }
+                                    print!(">> \x1B[{};0H", len + 3); 
                                 }
                             }
                             Err(_) => {}
                         }
                     }
                 });
-                
+
                 loop {
-                    print!(">> "); 
-                    std::io::stdout().flush().unwrap();
-                    let mut string: String = String::new();
-                    std::io::stdin().read_line(&mut string).unwrap();
-                    chat_client.send_message(ChatRequest {
-                        session_id: chat_request.session_id.to_string(),
-                        message: string
-                    }).await.unwrap();
+                    print!("\x1B[{};0H", chat_storage.lock().unwrap().len() + 3); 
+                    let msg: String = Input::new().with_prompt(">> ").interact_text().unwrap();
+                    chat_client
+                        .send_message(ChatRequest {
+                            session_id: chat_request.session_id.to_string(),
+                            message: msg,
+                        })
+                        .await
+                        .unwrap();
+                    print!("\x1B[{};0H\x1B[K", chat_storage.lock().unwrap().len() + 4);
                 }
-
-
+            }
         }
     }
     Ok(())
 }
 
 /*
-   loop {
-                    let stream = response_stream.message().await {
-                        let sent_user = stream.unwrap();
 
-                match sent_user {
-                    Some(v) => {
-                        println!("{}#{}: {}", v.username, v.discriminator, v.message);
+
+                let chat_storage_clone = chat_storage.clone();
+                tokio::spawn(async move {
+                    loop {
+                        match r_stream.message().await {
+                            Ok(v) => {
+                                if v.is_some() {
+                                let user = v.clone().unwrap();
+                                chat_storage_clone.lock().unwrap().push(user.clone());
+                                let len = chat_storage.lock().unwrap().len() as u16;
+                                let storage = chat_storage.lock().unwrap();
+                                for i in 0..len as usize {
+                                    execute!(stdout(), cursor::MoveTo(0, len)).unwrap();
+                                    execute!(
+                                        stdout(),
+                                        SetForegroundColor(Color::Red),
+                                        Print(format!("{}#{}: {}", storage[i].username, storage[i].discriminator, storage[i].message).to_string())
+                                    )
+                                    .unwrap();
+                                }
+                            }
+                            }
+                            Err(_) => {}
+                        }
                     }
-                    None => {}
-                }
+                });
+    tokio::spawn(async move {
+                    loop {
+                        if let Ok(Some(next_message)) = r_stream.message().await {
+                            window.printw(&format!("{:?}", next_message).to_string());
+                        }
                     }
+                });
+                loop {
+                    let msg: String = Input::new().with_prompt(">> ").interact_text().unwrap();
+                    chat_client
+                        .send_message(ChatRequest {
+                            session_id: chat_request.session_id.to_string(),
+                            message: msg,
+                        })
+                        .await
+                        .unwrap();
                 }
 
+tokio::spawn(async move {
+                        loop {
+                            if let Ok(Some(next_message)) = stream.message().await {
+                                Term::stdout().clear_screen().unwrap();
+                                window.printw(&format!("{:?}", next_message).to_string());
+                                // println!("{:?}", next_message);
+                            }
+                        }
+                    }
+                tokio::spawn(async move {
+                    loop {
+                        let msg: String = Input::new().with_prompt(">> ").interact_text().unwrap();
+                        chat_client
+                            .send_message(ChatRequest {
+                                session_id: chat_request.session_id.to_string(),
+                                message: msg,
+                            })
+                            .await
+                            .unwrap();
+                    }
+                });*/
 
 /*
-            while let stream = response_stream.message().await {
-                let sent_user = stream.unwrap();
+let task_2 = async {
+    loop {
+        let msg: String = Input::new().with_prompt(">> ").interact_text().unwrap();
+        chat_client
+            .send_message(ChatRequest {
+                session_id: chat_request.session_id.to_string(),
+                message: msg,
+            })
+            .await
+            .unwrap();
+    }
+};*/
 
-                match sent_user {
-                    Some(v) => {
-                        println!("{}#{}: {}", v.username, v.discriminator, v.message);
+/*
+
+loop {
+        match stream.message().await {
+            Ok(_) => {},
+            Err(_) => {}
+        }
+    }
+tokio::spawn(async move {
+    loop {
+        match stream.message().await {
+            Ok(_) => {},
+            Err(_) => {}
+        }
+    }
+});*/
+
+/*
+loop {
+    let msg: String = Input::new().with_prompt(">> ").interact_text().unwrap();
+    chat_client
+    .send_message(ChatRequest {
+        session_id: chat_request.session_id.to_string(),
+         message: msg,
+    })
+    .await
+    .unwrap();
+}*/
+/*
+
+  let chat_storage_clone = chat_storage.clone();
+                tokio::spawn(async move {
+                    loop {
+                        match response_stream.message().await {
+                            Ok(v) => {
+                                if v.is_some() {
+                                    Term::stdout().clear_screen().unwrap();
+                                    let user = v.unwrap();
+                                    let mut storage = chat_storage_clone.lock().unwrap();
+                                    storage.push(user.clone());
+                                    let mut result = String::default();
+                                    for i in 0..storage.len() {
+                                        result += &format!(
+                                            "\n     {}{}: {}",
+                                            style(storage[i].username.to_string()).blue().bright(),
+                                            style(format!("#{}", storage[i].discriminator))
+                                                .white()
+                                                .bright(),
+                                            style(storage[i].message.to_string()).white().bright()
+                                        ).to_string();
+                                    }
+                                    println!("{}\n\n", result);
+                                }
+                            }
+                            Err(_) => {}
+                        }
                     }
-                    None => {}
-                }
+                });
+
+fn run_app<B: Backend>(terminal: &mut Terminal<B>, mut app: App, mut input_buffer: String) -> io::Result<()> {
+    loop {
+        terminal.draw(|f| ui(f, &app, input_buffer.clone()))?;
+        if let Event::Key(KeyEvent { code: KeyCode::Char(c), modifiers: KeyModifiers::NONE, kind, state }) = crossterm::event::read().unwrap() {
+            if c == '\n' {
+                println!("Input received: {}", input_buffer);
+                input_buffer.clear();
+            } else {
+                input_buffer.push(c);
             }
-            */
+        }
+    }
+    Ok(())
+}
+
+fn ui<B: Backend>(f: &mut Frame<B>, app: &App, input_buffer: String) {
+    let chunks = Layout::default()
+                .constraints([Constraint::Min(0), Constraint::Length(1)].as_ref())
+                .split(f.size());
+
+            let text = vec![
+                Spans::from(Span::styled(">> ", Style::default().fg(Color::White))),
+                Spans::from(Span::styled(input_buffer.as_str(), Style::default().fg(Color::Yellow))),
+            ];
+            let input = Paragraph::new(text)
+                .style(Style::default().fg(Color::White))
+                .block(tui::widgets::Block::default().borders(tui::widgets::Borders::ALL).title("Input"));
+            f.render_widget(input, chunks[0]);
+
+            let message = Paragraph::new("Some message");
+            f.render_widget(message, chunks[1]);
+
+}
+*/
+/*
 let mut auth_request = AuthRequest {
     session_id: String::default(),
 };
+
 let mut chat_request = ChatRequest {
-    session_id: session_id,
+    session_id: String::default(),
     message: String::default(),
 };
-*/
+println!(
+    "Server Authorization Method: {:?}\n",
+    AuthType::from_i32(presence_result.auth_type).unwrap()
+);
+if Confirm::with_theme(&ColorfulTheme::default())
+    .with_prompt("Begin Authorization?")
+    .interact()
+    .unwrap()
+{
+    let res = auth_client
+        .promote_stage(auth_request.clone())
+        .await
+        .unwrap();
+    auth_request.session_id = res.get_ref().session_id.to_string();
+}
 
-/*
-    // check if chatter session exists...
-    if chat_request.clone().session_id.is_empty() {
-        if auth_request.clone().session_id.is_empty() {
-            println!(
-                "Server Authorization Method: {:?}\n",
-                AuthType::from_i32(presence_result.auth_type).unwrap()
-            );
-            if Confirm::with_theme(&ColorfulTheme::default())
-                .with_prompt("Begin Authorization?")
-                .interact()
-                .unwrap()
-            {
-                let res = auth_client
-                    .promote_stage(auth_request.clone())
-                    .await
-                    .unwrap();
-                auth_request.session_id = res.get_ref().session_id.to_string();
-            }
-        } else {
-            let res = auth_client
-                .promote_stage(auth_request.clone())
-                .await
-                .unwrap();
-            if res.get_ref().stage() == AuthStage::Authorization {
-                if trick_repeat == false {
-                    Term::stdout().clear_screen().unwrap();
-                    println!(
-                        "\n  {}",
-                        console::style("Waiting for Authentication...")
-                            .bold()
-                            .yellow()
-                            .bright()
-                    );
-                    println!(
-                        "\n  URL: {}",
-                        console::style(res.get_ref().url()).bold().yellow().bright()
-                    );
-                    println!(
-                        "\n  Session ID: {}",
-                        console::style(res.get_ref().session_id.to_string())
-                            .bold()
-                            .yellow()
-                            .bright()
-                    );
-                    println!(
-                        "\n  Code: {}",
-                        console::style(res.get_ref().code())
-                            .bold()
-                            .yellow()
-                            .bright()
-                    );
-                    trick_repeat = true;
-                }
-            }
-            if res.get_ref().stage() == AuthStage::Completed {
-                if trick_repeat == true {
-                 Term::stdout().clear_screen().unwrap();
+while chat_request.session_id.is_empty() {
+    if !auth_request.session_id.is_empty() {
+        let res = auth_client
+            .promote_stage(auth_request.clone())
+            .await
+            .unwrap();
+        let data = res.get_ref();
 
-                    println!(
-                        "\n  {}",
-                        console::style("Authorization Approved.")
-                            .bold()
-                            .green()
-                            .bright()
-                    );
-                    trick_repeat = false
-                }
-                chat_request.session_id = res.get_ref().session_id.to_string();
-                thread::sleep(time::Duration::from_secs(1));
+        if data.stage() == AuthStage::Authorization {
+            if trick_repeat == false {
+                Term::stdout().clear_screen().unwrap();
+                println!(
+                    "\n  {}",
+                    style("Waiting for Authentication...")
+                        .bold()
+                        .yellow()
+                        .bright()
+                );
+                println!(
+                    "\n  URL: {}",
+                    style(res.get_ref().url()).bold().yellow().bright()
+                );
+                println!(
+                    "\n  Session ID: {}",
+                    style(res.get_ref().session_id.to_string())
+                        .bold()
+                        .yellow()
+                        .bright()
+                );
+                println!(
+                    "\n  Code: {}",
+                    style(res.get_ref().code()).bold().yellow().bright()
+                );
+                trick_repeat = true;
+            }
+        }
+        if data.stage() == AuthStage::Completed {
+            if trick_repeat == true {
+                Term::stdout().clear_screen().unwrap();
+
+                println!(
+                    "\n  {}",
+                    style("Authorization Approved.").bold().green().bright()
+                );
+                thread::sleep(time::Duration::from_secs(2));
+                chat_request.session_id = data.session_id.to_string();
+                trick_repeat = false;
                 Term::stdout().clear_screen().unwrap();
             }
         }
-    } else {
-        let mut movable_chat_client = chat_client.clone();
-        let mut movable_session_id = chat_request.session_id.to_string();
-        let mut movable_at_message = at_message.clone();
-
-        tokio::spawn( async move {
-            let response = movable_chat_client.recieve_message(ChatFilter {
-                session_id: movable_session_id,
-                at_message: movable_at_message
-            }).await.unwrap();
-            let data = response.get_ref();
-            at_message = data.at_message;
-            println!("{}#{}: {}", data.username, data.discriminator, data.message)
-        });
-        let input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("> ")
-            .interact_text()
-            .unwrap();
-        chat_request.message = input.to_string();
-        chat_client.send_message(chat_request.clone()).await.unwrap();
     }
+}
+
+if !chat_request.session_id.is_empty() {
+
+
+
 }
 */
 
-// check if is authenticated if it is create a separate loop.. that handles just the chatclient requests
+// let chat_storage_clone = chat_storage.clone();
+/*
+
+let mut response_stream = chat_client
+    .recieve_message(ChatFilter {
+        session_id: chat_request.session_id.to_string(),
+    })
+    .await?
+    .into_inner();
+tokio::spawn(async move {
+    loop {
+        match response_stream.message().await {
+            Ok(v) => {
+                if v.is_some() {
+                    let user = v.unwrap();
+                    let mut storage = chat_storage_clone.lock().await;
+                    storage.push(user.clone());
+                    for message in chat_storage.lock().await.iter() {
+                        println!(
+                            "{}{}: {}",
+                            console::style(message.username.to_string()).blue().bright(),
+                            console::style(format!("#{}", message.discriminator))
+                                .white()
+                                .bright(),
+                            console::style(message.message.to_string()).white().bright()
+                        );
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+    }
+});
+*/
 /*
 loop {
-    // [Request/Response] Presence gRPC
-
-
-    // [Request] Stage Promotion gRPC
-    let mut request = AuthRequest {
-        session_id: session_id.clone(),
-    };
-
-    if request.session_id.is_empty() {
-        println!(
-            "Server Authorization Method: {:?}\n",
-            AuthType::from_i32(presence_result.auth_type).unwrap()
-        );
-        if Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt("Begin Authorization?")
-            .interact()
-            .unwrap()
-        {
-            // [Response] Stage Promotion gRPC
-            let a = auth_client.promote_stage(request.clone()).await.unwrap();
-            let b = a.get_ref();
-            session_id = b.session_id.to_string();
-            current_stage = AuthStage::from_i32(b.stage.unwrap()).unwrap();
-        }
-    } else {
-        if current_stage == AuthStage::Stage1 {
-            let a = auth_client.promote_stage(request.clone()).await.unwrap();
-            let b = a.get_ref();
-            current_stage = AuthStage::from_i32(b.stage.unwrap()).unwrap();
-        }
-
-        if current_stage == AuthStage::Stage2 {
-            let a = auth_client.promote_stage(request.clone()).await.unwrap();
-            let b = a.get_ref();
-            current_stage = AuthStage::from_i32(b.stage.unwrap()).unwrap();
-        }
-
-        if current_stage == AuthStage::Stage3 {
-            let a = auth_client.promote_stage(request.clone()).await.unwrap();
-            let b = a.get_ref();
-            //current_stage = AuthStage::from_i32(b.stage.unwrap()).unwrap();
-            current_stage = AuthStage::from_i32(b.stage.unwrap()).unwrap();
-            if waiting == false {
-                Term::stdout().clear_screen().unwrap();
-                println!("\n  {}", console::style("Waiting for Authentication...").bold().yellow().bright());
-                println!("\n  URL: {}", console::style(b.url()).bold().yellow().bright());
-                println!("\n  Session ID: {}", console::style(b.session_id.to_string()).bold().yellow().bright());
-                println!("\n  Code: {}", console::style(b.code()).bold().yellow().bright());
-                waiting = true
-            }
-        }
-        if current_stage == AuthStage::Completed {
-            if waiting == false {
-                Term::stdout().clear_screen().unwrap();
-                println!("\n  {}", console::style("Authorization Approved.").bold().green().bright());
-                waiting = true
-            }
-        }
-        */
+    let msg: String = Input::new().with_prompt(">> ").interact_text().unwrap();
+    chat_client
+    .send_message(ChatRequest {
+        session_id: chat_request.session_id.to_string(),
+         message: msg,
+    })
+    .await
+    .unwrap();
+}
+*/

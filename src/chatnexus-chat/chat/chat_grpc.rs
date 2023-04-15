@@ -1,5 +1,4 @@
 use crate::{
-    chat::UserMessage,
     chatnexus_chat::{self, chat_server::Chat, ChatFilter, ChatRequest, ChatResponse, Empty},
 };
 
@@ -39,11 +38,10 @@ impl Chat for ChatService {
 
     async fn recieve_message(&self, req: Request<ChatFilter>) -> ChatResult<Self::RecieveMessageStream> {
         let (stream_tx, mut stream_rx) = mpsc::channel(1);
-        let (tx, mut rx) = mpsc::channel(1);
+        let (tx, mut rx) = mpsc::channel(100);
         {
             self.senders.write().await.insert(req.get_ref().session_id.to_string(), tx);
         }
-        
         let senders_clone = self.senders.clone();
         tokio::spawn(async move  {
             while let Some(msg) = rx.recv().await {

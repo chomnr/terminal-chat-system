@@ -27,7 +27,7 @@ pub struct DiscordUser {
     id: String,
     username: String,
     discriminator: String,
-    avatar: String
+    avatar: String,
 }
 
 impl Default for OAuth2Config {

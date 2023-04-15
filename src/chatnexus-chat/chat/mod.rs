@@ -12,6 +12,7 @@ use serde::{Serialize, Deserialize};
 
 use crate::chatnexus_chat::ChatResponse;
 use crate::chatnexus_chat::{chat_server::ChatServer, ChatRequest};
+use crate::helper;
 
 use self::error::{ChatError, ChatResult};
 
@@ -24,13 +25,6 @@ pub struct ChatUser {
     pub username: String,
     pub discriminator: String,
     pub session_id: String
-}
-
-#[derive(Clone, Debug)]
-pub struct UserMessage {
-    pub username: String,
-    pub discriminator: String,
-    pub message: String
 }
 
 #[derive(Clone, Debug)]
@@ -68,14 +62,20 @@ impl ChatService {
             .map_err(|_| ChatError::ChatSessionNotFound(session_id.to_string()))?;
         Ok(serde_json::from_str(&session).unwrap())
     }
-
+    /// Sends a message to all the connected people in a channel.
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - Session id of client.
+    ///
+    /// ```
     pub async fn broadcast(&self, msg: ChatResponse) {
         let senders = self.senders.read().await;
         for (name, tx) in senders.iter() {
             match tx.send(msg.clone()).await {
-                Ok(_) => {}
+                Ok(_) => {},
                 Err(_) => {
-                    println!("[Broadcast] SendError: to {}, {:?}", name, msg)
+                    helper::system_print(&format!("Failed to broadcast message."))
                 }
             }
         }
