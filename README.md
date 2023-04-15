@@ -4,5 +4,5 @@ Development of a scalable gRPC-based messaging system with robust user authentic
 https://www.youtube.com/watch?v=gq852Cxr980
 
 ## Features
-OAuth2 Authentication\n
+OAuth2 Authentication<br>
 Chatting
