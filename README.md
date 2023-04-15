@@ -1,5 +1,5 @@
 # ChatNexus
-Development of a scalable gRPC-based messaging system with robust user authentication utilizing OAuth2 protocol
+A Simple gRPC-Based System with OAuth2 Authentication Protocol.
 ## Video
 https://www.youtube.com/watch?v=gq852Cxr980
 
