@@ -1,5 +1,5 @@
 # ChatNexus
-A simple gRPC-Based chat system with oAuth2 authentication.
+A simple gRPC-Based chat system with oauth2 authentication.
 ## Video
 https://www.youtube.com/watch?v=gq852Cxr980
 
