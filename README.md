@@ -7,4 +7,3 @@ https://www.youtube.com/watch?v=gq852Cxr980
 Fast and Secure Messaging<br>
 Easy Authentication with OAuth2<br>
 Real-Time Updates<br>
-Cross-Platform Compatibility
