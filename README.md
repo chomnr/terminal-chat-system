@@ -40,7 +40,7 @@ OAUTH2_REDIRECT_URI = ""
 
 WEB_SECRET_KEY = "RANDOM VALUE HERE."
 ```
-### Running the servers and client.
+### Running the servers and client
 ```bash
 git clone https://github.com/chomnr/ChatNexus.git
 cd chatnexus
