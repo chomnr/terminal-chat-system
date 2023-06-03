@@ -4,10 +4,3 @@
   <img src="https://img.shields.io/github/commit-activity/m/chomnr/chatnexus?color=ff69b4"/>
   <img src="https://img.shields.io/github/repo-size/chomnr/chatnexus"/>
 </p>
-## Video
-https://www.youtube.com/watch?v=gq852Cxr980
-
-## Features
-Fast and Secure Messaging<br>
-Easy Authentication with OAuth2<br>
-Real-Time Updates<br>
