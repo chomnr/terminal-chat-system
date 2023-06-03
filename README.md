@@ -4,3 +4,35 @@
   <img src="https://img.shields.io/github/commit-activity/m/chomnr/chatnexus?color=ff69b4"/>
   <img src="https://img.shields.io/github/repo-size/chomnr/chatnexus"/>
 </p>
+
+Just another centralized chat system.
+<br>
+<br>
+Authentication is done through Discord's OAuth2 API. The chat messages are transmitted through google's inhouse remote procedure call framework (gRPC). The status of everything is kept up to date with Redis.
+<br>
+<br>
+Nice and simple. I think.
+
+## Getting started
+The only external dependency you need is Redis. 
+<br>
+1. Install [Redis](https://redis.io/download/)
+
+### Running the servers and client.
+```bash
+git clone https://github.com/chomnr/ChatNexus.git
+cd chatnexus
+cargo build
+
+# Running the chat server.
+cd chatnexus-chat
+cargo run
+
+# Running the web server.
+cd chatnexus-web
+cargo run
+
+# Running the client.
+cd chatnexus-client
+cargo run
+```
