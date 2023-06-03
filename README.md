@@ -21,7 +21,7 @@ The only external dependency you need is Redis.
 <br>
 1. Install [Redis](https://redis.io/download/)
 
-### Configuring config
+### Configuring env
 ```
 REDIS_HOST = ""
 REDIS_USERNAME = ""
