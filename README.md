@@ -21,7 +21,25 @@ The only external dependency you need is Redis.
 <br>
 1. Install [Redis](https://redis.io/download/)
 
+### Configuring Config
+```
+REDIS_HOST = ""
+REDIS_USERNAME = ""
+REDIS_PASSWORD = ""
+REDIS_PORT = ""
+REDIS_DATABASE = ""
 
+OAUTH2_ENDPOINT = ""
+OAUTH2_AUTHORIZE = ""
+OAUTH2_TOKEN = ""
+OAUTH2_SCOPES = ""
+OAUTH2_CLIENT_ID = ""
+OAUTH2_CLIENT_SECRET = ""
+OAUTH2_REDIRECT_URI = ""
+
+
+WEB_SECRET_KEY = "RANDOM VALUE HERE."
+```
 ### Running the servers and client.
 ```bash
 git clone https://github.com/chomnr/ChatNexus.git
