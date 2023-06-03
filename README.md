@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/github/repo-size/chomnr/chatnexus"/>
 </p>
 
-Video Preview
+Video Preview<br>
 https://www.youtube.com/watch?v=gq852Cxr980
 
 Just another centralized chat system.
