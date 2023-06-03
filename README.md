@@ -21,6 +21,7 @@ The only external dependency you need is Redis.
 <br>
 1. Install [Redis](https://redis.io/download/)
 
+
 ### Running the servers and client.
 ```bash
 git clone https://github.com/chomnr/ChatNexus.git
