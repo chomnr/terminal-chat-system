@@ -11,7 +11,7 @@ https://www.youtube.com/watch?v=gq852Cxr980
 Just another centralized chat system.
 <br>
 <br>
-Authentication is done through Discord's OAuth2 API. The chat messages are transmitted through google's inhouse remote procedure call framework (gRPC). The status of everything is kept up to date with Redis.
+Authentication is done through Discord's OAuth2 API. The chat messages are transmitted through gRPC. The status of everything is kept up to date with Redis.
 <br>
 <br>
 Nice and simple. I think.
